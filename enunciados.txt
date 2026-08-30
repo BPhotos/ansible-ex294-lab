@@ -1,3 +1,6 @@
+EX01: inventario playbook handler idempotencia
+==============================================
+
 Tienes un inventario con estos servidores:
 	web01
 	web02
@@ -42,3 +45,115 @@ Requisitos
 		Collections externas
 		Jinja2 avanzado
 		Sí quiero que utilices FQCN, por ejemplo: ansible.builtin.copy en lugar de: copy
+
+EX02: 
+Partimos del ejercicio 1 y mantenemos la misma infraestructura.
+1. CREAR GROUP_VARS
+===================
+
+Crear la siguiente estructura:
+
+group_vars/
+└── web.yml
+
+Dentro de web.yml debe existir una variable llamada:
+
+web_message
+
+Valor requerido:
+
+Servidor gestionado por Ansible
+
+
+2. MODIFICAR EL PLAYBOOK
+========================
+
+Modificar site.yml para que la pagina web genere dinamicamente:
+
+En lab1:
+
+Servidor: lab1
+Servidor gestionado por Ansible
+
+En lab2:
+
+Servidor: lab2
+Servidor gestionado por Ansible
+
+La pagina debe utilizar:
+
+- ansible_hostname
+- web_message
+
+
+3. MANTENER LO APRENDIDO EN EX01
+================================
+
+El playbook debe seguir incluyendo:
+
+[ ] hosts: web
+[ ] become
+[ ] FQCN
+[ ] Instalacion de nginx
+[ ] nginx arrancado
+[ ] nginx habilitado
+[ ] ansible.builtin.copy
+[ ] Handler
+[ ] notify
+[ ] Idempotencia
+
+
+4. COMPROBAR LAS VARIABLES
+==========================
+
+Antes de ejecutar el playbook, comprobar que Ansible carga la variable.
+
+Comandos:
+
+ansible-inventory -i hosts --graph
+
+ansible-inventory -i hosts --list
+
+Tambien se puede comprobar directamente:
+
+ansible web -i hosts -m ansible.builtin.debug -a "var=web_message"
+
+
+5. DOCUMENTACION
+================
+
+Se permite y se recomienda consultar documentacion oficial.
+
+Buscar especificamente:
+
+Ansible group_vars
+Ansible variable precedence
+
+
+6. RESTRICCIONES
+================
+
+No utilizar roles todavia.
+
+No escribir el valor de web_message directamente en site.yml.
+
+No crear una tarea diferente para lab1 y otra para lab2.
+
+El playbook debe funcionar utilizando la misma logica para ambos servidores.
+
+9. VERIFICACION
+===============
+
+Ejecutar:
+
+ansible-playbook -i hosts site.yml
+
+Comprobar que no hay errores.
+
+Ejecutar el playbook una segunda vez.
+
+Esperar:
+
+changed=0
+
+si los servidores ya estan en el estado deseado.

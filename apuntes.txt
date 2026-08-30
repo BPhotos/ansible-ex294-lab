@@ -1,0 +1,359 @@
+EXO1:
+MINI DOCUMENTACION - EX01 ANSIBLE
+======================================
+Fundamentos vistos en el primer laboratorio EX294
+
+
+1. INVENTARIO
+-------------
+
+El inventario define los hosts gestionados por Ansible y permite organizarlos
+en grupos.
+
+Ejemplo:
+
+[web]
+lab1
+lab2
+
+[db]
+db01
+
+Si un play contiene:
+
+hosts: web
+
+Ansible trabajara sobre lab1 y lab2, pero no sobre db01.
+
+Idea clave:
+    Inventario = donde y sobre quien trabajo.
+
+
+2. PLAYBOOK -> PLAY -> TASK -> MODULE
+-------------------------------------
+
+La estructura conceptual es:
+
+Playbook
+  |
+  +-- Play
+       |
+       +-- Task -> Module
+       +-- Task -> Module
+       +-- Task -> Module
+
+Un play define, entre otras cosas:
+- sobre que hosts se ejecuta
+- si utiliza privilegios elevados
+- que tareas debe realizar
+
+Una task representa una accion.
+
+Un module es el mecanismo de Ansible que realiza esa accion.
+
+
+3. FQCN
+-------
+
+FQCN significa Fully Qualified Collection Name.
+
+Ejemplos utilizados:
+
+ansible.builtin.apt
+ansible.builtin.copy
+ansible.builtin.service
+
+Durante la preparacion utilizaremos preferentemente FQCN.
+
+Ejemplo:
+
+ansible.builtin.apt:
+  name: nginx
+  state: present
+
+
+4. BECOME
+---------
+
+become: true
+
+Indica que las tareas necesitan ejecutarse con privilegios elevados en el managed node, normalmente mediante sudo.
+
+No debe entenderse como una opcion que siempre hay que poner, sino como una forma de indicar que una operacion requiere privilegios.
+
+5. FACTS
+--------
+
+Ansible puede recopilar informacion del sistema remoto antes de ejecutar las tareas.
+
+Una forma de consultar los facts es:
+
+ansible web -i hosts -m ansible.builtin.setup
+
+Uno de los datos disponibles puede utilizarse como:
+
+{{ ansible_hostname }}
+
+Esto permite que el mismo playbook se adapte a diferentes servidores.
+
+Ejemplo:
+
+content: "Servidor: {{ ansible_hostname }}"
+
+En lab1:
+
+Servidor: lab1
+
+En lab2:
+
+Servidor: lab2
+
+
+6. VARIABLES Y JINJA2
+---------------------
+
+Las variables permiten utilizar informacion dinamica en lugar de escribir valores fijos.
+
+La sintaxis basica utilizada en este ejercicio es:
+
+{{ variable }}
+
+Ejemplo:
+
+{{ ansible_hostname }}
+
+Jinja2 se utiliza para interpolar y generar contenido dinamicamente.
+
+En este primer laboratorio solo hemos utilizado una forma sencilla de Jinja2. Su estudio avanzado se realizara posteriormente.
+
+
+7. MODULE COPY
+--------------
+
+ansible.builtin.copy permite copiar archivos o generar contenido.
+
+En el ejercicio se utilizo:
+
+ansible.builtin.copy:
+  content: "Servidor: {{ ansible_hostname }}"
+  dest: /var/www/html/index.html
+
+La opcion content permite generar directamente el contenido del archivo.
+
+Esto evita tener que crear manualmente un index diferente para cada servidor.
+
+
+8. HANDLERS
+-----------
+
+Los handlers son tareas especiales que se ejecutan cuando una task las notifica mediante notify.
+
+Ejemplo:
+
+Task:
+
+- name: Crear pagina web
+  ansible.builtin.copy:
+    content: "Servidor: {{ ansible_hostname }}"
+    dest: /var/www/html/index.html
+  notify: reinicia nginx
+
+Handler:
+
+handlers:
+  - name: reinicia nginx
+    ansible.builtin.service:
+      name: nginx
+      state: restarted
+
+Conceptualmente:
+
+TASK
+ |
+ +-- no cambia -> no handler
+ |
+ +-- cambia ----> notify -> HANDLER
+
+El nombre de notify debe coincidir con el nombre del handler.
+
+Error cometido durante el laboratorio:
+
+notify: reinicia apache
+
+Handler:
+
+name: reinicia nginx
+
+Resultado:
+
+The requested handler 'reinicia apache' was not found
+
+La correccion fue hacer coincidir ambos nombres.
+
+
+9. IDEMPOTENCIA
+---------------
+
+Una de las ideas fundamentales de Ansible.
+
+El objetivo no es ejecutar comandos repetidamente, sino conseguir que el sistema alcance un estado deseado.
+
+Ejemplo:
+
+ansible.builtin.apt:
+  name: nginx
+  state: present
+
+Primera ejecucion:
+    changed
+
+Siguiente ejecucion:
+    ok
+
+En el laboratorio:
+
+lab1 : changed=0
+lab2 : changed=0
+
+Esto demuestra que el sistema ya estaba en el estado declarado y Ansible no realizo cambios innecesarios.
+
+Idea clave:
+
+NO:
+    "Ejecuta este comando."
+
+SI:
+    "Quiero que el sistema este en este estado."
+
+
+10. SERVICIOS
+-------------
+
+ansible.builtin.service permite gestionar servicios.
+
+Ejemplo:
+
+- name: Configurar nginx
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: yes
+
+state: started
+    Garantiza que el servicio este arrancado.
+
+enabled: yes
+    Garantiza que el servicio este habilitado para arrancar con el sistema.
+
+
+11. TROUBLESHOOTING
+-------------------
+
+Ansible proporciona informacion muy util cuando una tarea falla.
+
+Proceso recomendado:
+
+1. Leer el error completo.
+2. Identificar la TASK que falla.
+3. Revisar que intenta hacer.
+4. Revisar modulo y parametros.
+5. Revisar variables.
+6. Revisar nombres.
+7. Revisar YAML e indentacion.
+8. Corregir.
+9. Ejecutar de nuevo.
+10. Verificar el resultado.
+
+Ejemplo real del laboratorio:
+
+The requested handler 'reinicia apache' was not found
+
+La causa no era nginx ni SSH.
+
+Era una discrepancia entre:
+
+notify: reinicia apache y name: reinicia nginx
+
+Esto es troubleshooting basico de Ansible.
+
+
+12. DOCUMENTACION
+-----------------
+
+No es necesario memorizar toda la sintaxis.
+
+Durante la preparacion:
+
+1. Intentar resolver.
+2. Consultar documentacion oficial si falta sintaxis.
+3. Aplicar la informacion encontrada.
+4. Ejecutar.
+5. Analizar el resultado.
+
+La habilidad importante es saber que concepto/modulo necesitas y encontrar rapidamente la informacion correcta.
+
+
+13. MODELO MENTAL
+-----------------
+
+Cuando recibas un problema de Ansible, pensar:
+
+    ¿Sobre que servidores? --> INVENTARIO --> ¿Que estado quiero? --> PLAY --> ¿Que Acciones? --> TASK --> ¿Que modulo? --> MODULE --> ¿Necesito datos dinamicos? --> FACTS / VARIABLES --> ¿Una tarea cambia algo? --> NOTIFY --> HANDLER --> ¿Es idempotente? --> EJECTUAR DE NUEVO.
+
+
+14. CHECKLIST EX01
+------------------
+
+[OK] Inventario
+[OK] Grupos de hosts
+[OK] hosts: web
+[OK] Playbook
+[OK] Tasks
+[OK] Modulos
+[OK] FQCN
+[OK] become
+[OK] apt
+[OK] service
+[OK] copy
+[OK] Facts
+[OK] ansible_hostname
+[OK] Variables/Jinja2 basico
+[OK] notify
+[OK] Handlers
+[OK] Idempotencia
+[OK] Troubleshooting
+[OK] Verificacion mediante segunda ejecucion
+
+
+15. QUE NO HAY QUE MEMORIZAR
+----------------------------
+
+No es necesario memorizar literalmente:
+
+ansible.builtin.service:
+  name: nginx
+  state: started
+  enabled: yes
+
+Lo importante es poder razonar:
+
+"Necesito garantizar que nginx este iniciado y habilitado."
+
+Entonces:
+- buscar el modulo adecuado
+- consultar su documentacion
+- comprobar los parametros
+- implementarlo
+- verificar el resultado
+
+
+16. CONCLUSION DEL EX01
+-----------------------
+
+El primer laboratorio ha cubierto el flujo basico de Ansible:
+
+Inventario -> Playbook -> Tasks -> Modules -> Facts / Variables -> Handlers -> Idempotencia -> Troubleshooting
+
+El siguiente paso natural es separar la configuracion del playbook mediante variables de inventario y group_vars.
+
+EX02:
