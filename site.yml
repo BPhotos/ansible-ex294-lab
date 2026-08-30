@@ -1,0 +1,32 @@
+---
+- name: instalar nginx
+  hosts: web
+  become: true
+
+  tasks:
+  - name: Instalar nginx
+    ansible.builtin.apt:
+      name: nginx
+      state: present
+  
+  - name: Crea página Web
+    ansible.builtin.copy:
+      content: "Servidor: {{ ansible_hostname }}"
+      dest: /var/www/html/index.html
+    notify: reinicia nginx
+ 
+  - name: activar nginx
+    ansible.builtin.service:
+      name: nginx
+      enabled: yes
+
+  - name: Arrancar nginx
+    ansible.builtin.service:
+      name: nginx 
+      state: started
+
+  handlers:
+    - name: reinicia nginx
+      ansible.builtin.service:
+        name: nginx
+        state: restarted

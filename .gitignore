@@ -1,0 +1,4 @@
+*.retry
+*.log
+.vault_password
+vault_password

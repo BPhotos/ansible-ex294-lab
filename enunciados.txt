@@ -1,0 +1,44 @@
+Tienes un inventario con estos servidores:
+	web01
+	web02
+	db01
+Y quieres conseguir el siguiente estado:
+
+Requisitos
+	1. Inventario:
+		Crea un inventario llamado hosts con:
+			web01 y web02 dentro del grupo web
+			db01 dentro del grupo db
+	2. Playbook
+		Crea site.yml
+		El playbook debe:
+			Ejecutarse únicamente sobre el grupo web.
+			Utilizar become.
+			Instalar nginx.
+			Asegurarse de que el servicio nginx:
+				está arrancado
+				está habilitado para arrancar automáticamente con el sistema.
+	3. Página web
+		Crea una página /var/www/html/index.html.
+		El contenido debe mostrar:
+			"Servidor: web01" en web01.
+			"Servidor: web02" en web02.
+		No escribas dos tareas distintas para cada servidor. Utiliza una variable o un fact.
+
+	4. Handler:
+		Si modificas index.html, nginx debe reiniciarse mediante un handler.
+		No queremos reiniciar nginx si el fichero no ha cambiado.
+	
+	5. Idempotencia
+		Ejecuta: ansible-playbook -i hosts site.yml dos veces.
+		La primera ejecución debe realizar cambios.
+		La segunda debería mostrar algo parecido a: changed=0 en los servidores.
+
+	6. Restricciones:
+		Quiero que lo hagas desde cero.
+		No necesitas utilizar:
+		roles
+		Vault
+		Collections externas
+		Jinja2 avanzado
+		Sí quiero que utilices FQCN, por ejemplo: ansible.builtin.copy en lugar de: copy
