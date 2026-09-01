@@ -356,4 +356,284 @@ Inventario -> Playbook -> Tasks -> Modules -> Facts / Variables -> Handlers -> I
 
 El siguiente paso natural es separar la configuracion del playbook mediante variables de inventario y group_vars.
 
-EX02:
+# EX02 - VARIABLES, GROUP_VARS Y FACTS
+======================================
+
+El objetivo de este ejercicio ha sido aprender a separar la configuración y los datos de la lógica del playbook.
+
+En lugar de escribir toda la información directamente dentro de site.yml, una parte de la configuración se almacena en una variable externa.
+
+## ESTRUCTURA FINAL
+
+Certi/
+├── apuntes.txt
+├── enunciados.txt
+├── group_vars/
+│   └── web.yml
+├── hosts
+└── site.yml
+
+## GROUP_VARS
+
+Ansible permite definir variables asociadas a grupos del inventario.
+
+Si en el inventario existe:
+
+[web]
+lab1
+lab2
+
+Podemos crear:
+
+group_vars/web.yml
+
+Las variables definidas dentro de ese archivo estarán disponibles automáticamente para los hosts pertenecientes al grupo web.
+
+## VARIABLE UTILIZADA
+
+En group_vars/web.yml:
+
+	---
+	web_message: "Servidor gestionado por Ansible"
+
+Esta variable se puede utilizar posteriormente desde el playbook: {{ web_message }}
+
+## SEPARACION DE CONFIGURACION Y LOGICA
+
+Antes:
+
+site.yml
+|
++-- Contenido fijo
++-- Lógica del playbook
+
+Ahora:
+
+group_vars/web.yml
+|
++-- Datos / configuración
+
+site.yml
+|
++-- Lógica / automatización
+
+Esto permite que los playbooks sean más mantenibles.
+
+Si necesitamos modificar el mensaje, podemos hacerlo sin modificar la lógica del playbook.
+
+## USO DE VARIABLES
+
+Las variables se utilizan mediante Jinja:
+
+{{ nombre_variable }}
+
+Ejemplo:
+
+{{ web_message }}
+
+## FACTS DE ANSIBLE
+
+Ansible recopila información sobre los hosts remotos durante:
+
+Gathering Facts
+
+Una de esas variables es:
+
+ansible_hostname
+
+Ejemplo:
+
+{{ ansible_hostname }}
+
+Esta variable devuelve el hostname real configurado en el sistema remoto.
+
+## VARIABLE PROPIA + FACT
+
+En el ejercicio se combinaron:
+
+ansible_hostname y web_message
+
+para generar dinámicamente el contenido de:
+
+/var/www/html/index.html
+
+DIFERENCIA IMPORTANTE:
+INVENTORY HOSTNAME VS ANSIBLE_HOSTNAME
+--------------------------------------
+
+Durante el ejercicio se descubrió que nombre del host en el inventario no siempre es igual a ansible_hostname
+
+Ejemplo:
+
+INVENTARIO              HOSTNAME REAL
+---
+lab1                    debian
+lab2                    lab2
+
+Por tanto:
+
+lab1 es el nombre utilizado por Ansible dentro del inventario.
+Mientras que ansible_hostname representa el hostname configurado realmente en el sistema operativo remoto.
+
+## COMPROBAR VARIABLES
+
+Podemos comprobar directamente una variable utilizando:
+
+ansible web -i hosts -m ansible.builtin.debug -a "var=web_message"
+Esto permite verificar que Ansible está cargando correctamente la variable.
+
+Resultado esperado:
+
+lab1 → Servidor gestionado por Ansible
+lab2 → Servidor gestionado por Ansible
+
+## COMPROBAR EL INVENTARIO
+Podemos visualizar la estructura del inventario:
+
+ansible-inventory -i hosts --graph
+
+También podemos obtener una representación completa:
+ansible-inventory -i hosts --list
+
+## GENERAR CONTENIDO DINAMICO
+
+El módulo copy permite generar un archivo utilizando variables.
+
+Ejemplo conceptual:
+
+ansible.builtin.copy:
+content: "Servidor: {{ ansible_hostname }}\n{{ web_message }}"
+dest: /var/www/html/index.html
+
+## IMPORTANTE: SALTOS DE LINEA
+
+Durante el ejercicio apareció un problema con el salto de línea.
+
+Se utilizó: \\n Esto provocó que el contenido generado mostrase literalmente: Servidor: lab2\nServidor gestionado por Ansible
+
+Para generar un salto de línea real debe utilizarse: \n
+
+VERIFICACION DEL RESULTADO REAL
+-------------------------------
+
+Un PLAY RECAP correcto no significa necesariamente que el resultado final sea exactamente el esperado.
+Después de ejecutar el playbook se comprobó el contenido real: ansible web -i hosts -m ansible.builtin.command -a "cat /var/www/html/index.html"
+
+Esto permitió descubrir:
+
+1. Que el salto de línea se estaba escribiendo incorrectamente.
+2. Que lab1 y ansible_hostname no tenían el mismo valor.
+
+LECCION IMPORTANTE
+------------------
+
+No debemos considerar un playbook correcto únicamente porque: failed=0
+
+También debemos comprobar que el estado final del sistema es realmente el esperado.
+
+HANDLERS
+--------
+
+Se mantuvo el handler aprendido en EX01.
+
+La tarea que modifica index.html notifica al handler: notify: reinicia nginx
+
+El handler solamente se ejecuta cuando la tarea produce un cambio.
+
+Si index.html no cambia:
+
+	- la tarea devuelve ok;
+	- no se ejecuta el handler;
+	- nginx no se reinicia.
+
+IDEMPOTENCIA
+------------
+
+Primera ejecución:
+
+La página web cambió.
+
+Por tanto:
+
+	- la tarea copy produjo changed;
+	- se notificó el handler;
+	- nginx se reinició.
+
+
+Segunda ejecución: changed=0
+
+Esto demuestra que el playbook es idempotente.
+
+El estado deseado ya estaba configurado y Ansible no realizó cambios innecesarios.
+
+
+FLUJO COMPLETO
+--------------
+
+Inventario -> Grupo web -> group_vars/web.yml -> web_message -> site.yml -> lab1 + lab2
+
+CONCEPTOS APRENDIDOS
+--------------------
+
+[OK] Variables de Ansible.
+
+[OK] group_vars.
+
+[OK] Variables asociadas automáticamente a un grupo.
+
+[OK] Uso de variables mediante {{ variable }}.
+
+[OK] Facts de Ansible.
+
+[OK] ansible_hostname.
+
+[OK] Diferencia entre inventory hostname y hostname real.
+
+[OK] Combinar variables propias y facts.
+
+[OK] Comprobar variables con ansible.builtin.debug.
+
+[OK] Comprobar la estructura del inventario.
+
+[OK] Generar contenido dinámico.
+
+[OK] Uso correcto de saltos de línea.
+
+[OK] Verificar el resultado real de una automatización.
+
+[OK] Mantener handlers.
+
+[OK] Idempotencia.
+
+
+IDEA PRINCIPAL DEL EX02
+----------------------
+
+La principal idea aprendida es:
+
+DATOS / CONFIGURACION
+        |
+        v
+group_vars
+
+
+LOGICA / AUTOMATIZACION
+        |
+        v
+site.yml
+
+
+Esta separación permite crear automatizaciones más claras, reutilizables y mantenibles.
+
+
+ESTADO DEL PROGRESO
+-------------------
+
+EX01 - Nginx, handlers e idempotencia
+
+COMPLETADO
+
+EX02 - Variables, group_vars y facts
+
+COMPLETADO
+

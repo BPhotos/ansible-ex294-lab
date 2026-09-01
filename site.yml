@@ -11,7 +11,7 @@
   
   - name: Crea página Web
     ansible.builtin.copy:
-      content: "Servidor: {{ ansible_hostname }}"
+      content: "Servidor: {{ ansible_hostname }}\n{{ web_message }}"
       dest: /var/www/html/index.html
     notify: reinicia nginx
  
