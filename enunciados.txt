@@ -386,3 +386,187 @@ La progresión hasta ahora es:
 EX01 → Mismo estado para todos
 EX02 → Configuración común por grupo
 EX03 → Diferencias por host + ejecución condicional
+
+EX04 — register, resultados y condiciones basadas en comandos
+i==================================================================
+Hasta ahora tus condiciones dependen de variables que tú defines:
+
+host_vars
+    ↓
+web_environment
+    ↓
+when
+
+Ahora vamos a dar un paso importante:
+
+EJECUTAR UNA COMPROBACIÓN
+          ↓
+       register
+          ↓
+ GUARDAR EL RESULTADO
+          ↓
+        when
+          ↓
+ TOMAR UNA DECISIÓN
+
+Esto se parece mucho más a la automatización real.
+
+🎯 Objetivo
+
+Crear un playbook que compruebe información real de cada servidor y tome decisiones en función del resultado obtenido.
+
+Seguirás trabajando con:
+
+[web]
+lab1
+lab2
+
+Requisito 1 — Comprobar si existe nginx
+
+Añade una tarea que compruebe si existe el binario:
+
+/usr/sbin/nginx
+
+Puedes utilizar:
+
+ansible.builtin.command
+
+Guarda el resultado de la ejecución utilizando:
+
+register
+
+La variable de resultado puede llamarse:
+
+nginx_check
+Requisito 2 — Mostrar el resultado
+
+Utiliza:
+
+ansible.builtin.debug
+
+para mostrar únicamente el código de retorno del comando.
+
+Debes acceder al resultado almacenado mediante la variable registrada.
+
+Pista conceptual:
+
+register
+   ↓
+nginx_check
+   ↓
+nginx_check.rc
+Requisito 3 — Condición basada en el resultado
+
+Crea una tarea que solo se ejecute si nginx existe.
+
+La condición debe basarse en el código de retorno (rc) del comando anterior.
+
+La tarea debe mostrar un mensaje similar a:
+
+nginx está instalado en este servidor
+Requisito 4 — Condición inversa
+
+Crea otra tarea que solo se ejecute si nginx no existe.
+
+Debe mostrar:
+
+nginx NO está instalado en este servidor
+
+La decisión debe depender del resultado registrado anteriormente.
+
+Requisito 5 — Añadir una comprobación diferente por entorno
+
+Aquí mezclamos EX03 y EX04.
+
+En los hosts de:
+
+production
+
+realiza una comprobación adicional sobre nginx.
+
+En los hosts que no sean production, esa comprobación no debe ejecutarse.
+
+Puedes decidir qué comprobar, pero debe ser una comprobación real ejecutada mediante un módulo y guardar su resultado con register.
+
+Después muestra parte del resultado utilizando debug.
+
+🧠 Concepto central
+
+Hasta ahora:
+
+when: web_environment == "production"
+
+La decisión dependía de un dato que tú habías definido.
+
+Ahora también podrás hacer:
+
+COMANDO REAL
+      ↓
+RESULTADO REAL
+      ↓
+register
+      ↓
+when
+      ↓
+DECISIÓN
+
+Ejemplo conceptual:
+
+¿Existe nginx?
+       │
+       ▼
+    command
+       │
+       ▼
+      rc=0
+       │
+       ▼
+      when
+       │
+       ▼
+ "nginx instalado"
+Restricciones
+
+Debes mantener todo lo anterior:
+
+group_vars;
+host_vars;
+facts;
+when;
+handler;
+FQCN;
+idempotencia.
+
+No necesitas crear un playbook nuevo. Puedes añadir las tareas a site.yml.
+
+Qué debes aprender con EX04
+
+Al terminar debes entender:
+
+register
+    ↓
+guardar resultado de una tarea
+
+variable_registrada.rc
+    ↓
+código de retorno
+
+debug
+    ↓
+inspeccionar resultados
+
+when
+    ↓
+tomar decisiones con información real
+
+Este ejercicio ya empieza a entrar en un patrón muy habitual en automatización:
+
+COMPROBAR
+    ↓
+ANALIZAR
+    ↓
+DECIDIR
+    ↓
+ACTUAR
+
+Y ese patrón conecta bastante directamente con el troubleshooting que hiciste en la infraestructura real: comprobar SSH/Python, interpretar el resultado y separar los hosts según su comportamiento.

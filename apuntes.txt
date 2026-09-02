@@ -637,3 +637,544 @@ EX02 - Variables, group_vars y facts
 
 COMPLETADO
 
+
+# EX03 - HOST_VARS Y TAREAS CONDICIONALES
+
+## OBJETIVO
+
+Aprender a utilizar variables específicas por host y tomar decisiones diferentes dentro del mismo playbook.
+
+Hasta ahora se utilizaban variables comunes para todos los servidores de un grupo mediante:
+
+group_vars/
+
+## ESTRUCTURA
+
+Para definir variables específicas de cada host:
+
+host_vars/
+├── lab1.yml
+└── lab2.yml
+
+Ejemplo:
+
+host_vars/lab1.yml
+
+---
+
+web_environment: "producción"
+
+host_vars/lab2.yml
+
+---
+
+web_environment: "Development"
+
+## VARIABLES POR GRUPO VS VARIABLES POR HOST
+
+group_vars:
+
+Una variable se aplica a todos los hosts del grupo.
+
+Ejemplo:
+
+group_vars/web.yml
+
+---
+
+web_message: "Servidor gestionado por Ansible"
+
+host_vars:
+
+Una variable se aplica únicamente al host cuyo nombre coincide con el archivo.
+
+Ejemplo:
+
+host_vars/lab1.yml
+
+---
+
+web_environment: "producción"
+
+host_vars/lab2.yml
+
+---
+
+web_environment: "Development"
+
+## COMPROBAR VARIABLES
+
+Se puede comprobar el valor de una variable con:
+
+ansible web -i hosts -m ansible.builtin.debug -a "var=web_environment"
+
+## USO DE VARIABLES EN EL PLAYBOOK
+
+Las variables se utilizan mediante Jinja:
+
+{{ variable }}
+
+Ejemplo:
+
+content: "Servidor: {{ ansible_hostname }}
+{{ web_message }}
+{{ web_environment }}"
+
+## TAREAS CONDICIONALES
+
+Ansible permite ejecutar tareas únicamente cuando se cumple una condición mediante:
+
+when:
+
+Ejemplo:
+
+* name: Crear archivo de producción
+  ansible.builtin.copy:
+  content: "Este servidor es de PRODUCCIÓN"
+  dest: /var/www/html/production.txt
+  when: web_environment == "producción"
+
+La tarea solo se ejecutará cuando la variable tenga ese valor.
+
+## CONDICIÓN INVERSA
+
+También se puede ejecutar una tarea cuando la condición NO se cumple:
+
+* name: Crear archivo de desarrollo
+  ansible.builtin.copy:
+  content: "Este servidor NO es PRODUCCION"
+  dest: /var/www/html/development.txt
+  when: web_environment != "producción"
+
+## OPERADORES IMPORTANTES
+
+Igual:
+
+==
+
+Distinto:
+
+!=
+
+Ejemplos:
+
+when: web_environment == "producción"
+
+when: web_environment != "producción"
+
+## RESULTADO POR HOST
+
+El mismo playbook puede comportarse de forma diferente dependiendo de las variables de cada host.
+
+Ejemplo:
+
+lab1
+│
+└── web_environment = producción
+│
+└── production.txt
+
+lab2
+│
+└── web_environment = Development
+│
+└── development.txt
+
+## SKIPPING
+
+Cuando una condición when no se cumple, Ansible muestra:
+
+skipping
+
+Esto no es un error.
+
+Significa:
+
+La tarea existe
+↓
+Ansible evalúa la condición
+↓
+La condición es falsa
+↓
+La tarea no se ejecuta
+
+## CONCEPTO PRINCIPAL DEL EX03
+
+Un único playbook puede gestionar diferentes servidores de forma diferente.
+
+La lógica es:
+
+Variables
+↓
+Identificar características del host
+↓
+when
+↓
+Ejecutar únicamente las tareas necesarias
+
+## CONCEPTOS APRENDIDOS
+
+* group_vars
+* host_vars
+* Variables específicas por host
+* Variables comunes por grupo
+* Uso de {{ variable }}
+* when
+* ==
+* !=
+* Tareas condicionales
+* skipping
+* Diferente comportamiento por host utilizando el mismo playbook
+
+## IDEA PRINCIPAL
+
+No es necesario crear un playbook diferente para cada servidor.
+
+Se puede utilizar:
+
+Un mismo playbook
++
+Variables diferentes
++
+Condiciones
+
+para adaptar la automatización a cada host.
+
+
+# EX04 - REGISTER, RESULTADOS Y DECISIONES
+
+## OBJETIVO
+
+Aprender a ejecutar una comprobación, guardar el resultado y utilizar esa información para tomar decisiones dentro del playbook.
+
+El patrón principal es:
+
+COMPROBAR
+↓
+EJECUTAR
+↓
+REGISTER
+↓
+ANALIZAR RESULTADO
+↓
+WHEN
+↓
+ACTUAR
+
+## REGISTER
+
+register permite guardar el resultado de una tarea dentro de una variable.
+
+Ejemplo:
+
+* name: Comprobar si existe nginx
+  ansible.builtin.command:
+  cmd: ls -lrt /usr/sbin/nginx
+  register: nginx_check
+
+Después de ejecutar la tarea, Ansible guarda el resultado en:
+
+nginx_check
+
+## EL RESULTADO DE REGISTER
+
+Una variable registrada no contiene únicamente un resultado simple.
+
+Puede contener información como:
+
+nginx_check
+│
+├── rc
+├── stdout
+├── stdout_lines
+├── stderr
+├── stderr_lines
+├── changed
+├── failed
+├── cmd
+├── start
+├── end
+└── delta
+
+## CODIGO DE RETORNO
+
+El campo:
+
+rc
+
+significa Return Code.
+
+Normalmente:
+
+rc = 0
+
+significa que el comando se ejecutó correctamente.
+
+Ejemplo:
+
+* name: Mostrar código de retorno
+  ansible.builtin.debug:
+  msg: "{{ nginx_check.rc }}"
+
+Si el resultado es:
+
+msg: 0
+
+significa que el comando terminó correctamente.
+
+## USAR REGISTER CON WHEN
+
+El resultado de una tarea puede utilizarse posteriormente en una condición.
+
+Ejemplo:
+
+* name: nginx está instalado
+  ansible.builtin.debug:
+  msg: "nginx esta instalado en este servidor"
+  when: nginx_check.rc == 0
+
+## CONDICIÓN INVERSA
+
+También se puede actuar cuando el resultado es diferente.
+
+Ejemplo:
+
+* name: nginx no está instalado
+  ansible.builtin.debug:
+  msg: "nginx no esta instalado en este servidor"
+  when: nginx_check.rc != 0
+
+## FLUJO
+
+Comando
+↓
+register
+↓
+nginx_check
+↓
+nginx_check.rc
+↓
+when
+│
+├── rc == 0
+│       ↓
+│    Ejecutar acción
+│
+└── rc != 0
+↓
+Ejecutar otra acción
+
+## DEBUG
+
+debug permite inspeccionar valores y variables.
+
+Mostrar un valor concreto:
+
+ansible.builtin.debug:
+msg: "{{ nginx_check.rc }}"
+
+Mostrar una variable completa:
+
+ansible.builtin.debug:
+var: comprobacion
+
+Es especialmente útil utilizar:
+
+var:
+
+cuando todavía no sabemos qué campos contiene una variable registrada.
+
+## EJEMPLO DE COMPROBACIÓN REAL
+
+Comprobar la versión de nginx:
+
+* name: Comprobar versión de nginx
+  ansible.builtin.command:
+  cmd: nginx -v
+  register: comprobacion
+
+Posteriormente:
+
+* name: Mostrar resultado
+  ansible.builtin.debug:
+  var: comprobacion
+
+## RESULTADO OBTENIDO
+
+La variable registrada puede contener:
+
+changed
+cmd
+delta
+failed
+rc
+stdout
+stderr
+
+En la comprobación:
+
+nginx -v
+
+se obtuvo:
+
+rc: 0
+
+stderr: "nginx version: nginx/1.26.3"
+
+stdout: ""
+
+IMPORTANTE:
+
+No todos los comandos escriben su información en stdout.
+
+Algunos comandos escriben información en:
+
+stderr
+
+Por eso es recomendable inspeccionar primero el resultado completo mediante:
+
+ansible.builtin.debug:
+var: comprobacion
+
+Después se puede acceder directamente al campo necesario:
+
+{{ comprobacion.rc }}
+
+{{ comprobacion.stdout }}
+
+{{ comprobacion.stderr }}
+
+## COMBINAR VARIABLES Y REGISTER
+
+Se pueden combinar condiciones basadas en variables con resultados reales.
+
+Ejemplo:
+
+* name: Comprobar versión de nginx en producción
+  ansible.builtin.command:
+  cmd: nginx -v
+  register: comprobacion
+  when: web_environment == "producción"
+
+Después:
+
+* name: Mostrar comprobación
+  ansible.builtin.debug:
+  var: comprobacion
+  when: web_environment == "producción"
+
+## CONDICIONES COMPUESTAS
+
+Se pueden combinar varias condiciones mediante:
+
+and
+
+Ejemplo:
+
+when: nginx_check.rc == 0 and web_environment == "producción"
+
+La tarea solo se ejecutará si ambas condiciones son verdaderas.
+
+## FLUJO FINAL DEL EJERCICIO
+
+lab1
+
+web_environment = producción
+↓
+nginx -v
+↓
+register: comprobacion
+↓
+debug
+↓
+Mostrar información
+
+lab2
+
+web_environment = Development
+↓
+when = false
+↓
+skipping
+
+## COMMAND Y CHANGED
+
+Cuando se utiliza:
+
+ansible.builtin.command
+
+Ansible puede mostrar:
+
+changed
+
+aunque el comando únicamente haya realizado una comprobación.
+
+Esto ocurre porque command ejecuta un comando, pero no conoce automáticamente si dicho comando ha modificado el estado real del sistema.
+
+Por tanto:
+
+changed
+
+en una tarea command no siempre significa que el sistema haya cambiado.
+
+## CONCEPTOS APRENDIDOS
+
+* register
+* Variables registradas
+* rc
+* Return Code
+* stdout
+* stderr
+* stdout_lines
+* stderr_lines
+* changed
+* failed
+* command
+* debug
+* var
+* msg
+* when
+* Condiciones basadas en resultados reales
+* Condiciones compuestas con and
+* Inspección de resultados
+
+## IDEA PRINCIPAL
+
+La automatización no debe asumir el estado de un servidor.
+
+El patrón correcto es:
+
+COMPROBAR EL ESTADO
+↓
+GUARDAR EL RESULTADO
+↓
+ANALIZAR LA INFORMACIÓN
+↓
+TOMAR UNA DECISIÓN
+↓
+ACTUAR
+
+## CONCEPTO CENTRAL DEL EX04
+
+register no guarda simplemente un valor.
+
+register guarda información estructurada sobre la ejecución de una tarea.
+
+Esa información puede utilizarse posteriormente para:
+
+* mostrar resultados;
+* detectar errores;
+* comprobar códigos de retorno;
+* tomar decisiones;
+* ejecutar tareas condicionalmente.
+
+## PATRÓN DE AUTOMATIZACIÓN
+
+COMPROBAR
+↓
+ANALIZAR
+↓
+DECIDIR
+↓
+ACTUAR
+

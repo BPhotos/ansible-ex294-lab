@@ -37,6 +37,37 @@
       name: nginx 
       state: started
 
+  - name: Comprobar si existe nginx
+    ansible.builtin.command:
+      cmd: ls -lrt /usr/sbin/nginx
+    register: nginx_check
+
+  - name: Mostrar el resultado de que existe nginx 
+    ansible.builtin.debug:
+      msg: "{{ nginx_check.rc }}"
+  
+  - name: Condicion basada en el resultado
+    ansible.builtin.debug:
+      msg: "nginx esta instalado en este servidor"
+    when: nginx_check.rc == 0
+
+  - name: Condicion inversa
+    ansible.builtin.debug:
+      msg: "nginx no esta instalado en este servidor"
+    when: nginx_check.rc != 0
+
+  - name: Comprobar versión de nginx en producción
+    ansible.builtin.command:
+      cmd: nginx -v
+    register: comprobacion
+    when: web_environment == "producción"
+
+  - name: Mostrar comprobación de nginx en producción
+    ansible.builtin.debug:
+      var: comprobacion
+    when: web_environment == "producción"
+ 
+
   handlers:
     - name: reinicia nginx
       ansible.builtin.service:
