@@ -157,3 +157,232 @@ Esperar:
 changed=0
 
 si los servidores ya estan en el estado deseado.
+
+
+EX03 — host_vars y condiciones con when
+
+En los ejercicios anteriores has aplicado la misma configuración a todos los servidores del grupo web.
+Ahora vamos a introducir una situación habitual en una infraestructura real:
+Los servidores pertenecen al mismo grupo y comparten una configuración base, pero algunos tienen características o necesidades diferentes.
+
+Debes resolverlo utilizando:
+
+host_vars;
+variables específicas por host;
+condiciones con when.
+Infraestructura
+
+Partimos del mismo inventario:
+
+[web]
+lab1
+lab2
+
+[db]
+db01
+
+Seguimos trabajando únicamente sobre:
+
+hosts: web
+
+Por tanto, db01 no debe verse afectado.
+
+Requisito 1 — Crear variables por host
+
+Crea la siguiente estructura:
+
+host_vars/
+├── lab1.yml
+└── lab2.yml
+
+Cada servidor deberá tener una variable llamada:
+
+web_environment
+
+Los valores serán diferentes:
+
+lab1
+production
+lab2
+development
+Requisito 2 — Mostrar el entorno en la página
+
+Modifica la página web para que incluya:
+
+Servidor: <hostname real>
+Servidor gestionado por Ansible
+Entorno: <valor de web_environment>
+
+Por ejemplo:
+
+Servidor: debian
+Servidor gestionado por Ansible
+Entorno: production
+
+y en el otro servidor:
+
+Servidor: lab2
+Servidor gestionado por Ansible
+Entorno: development
+
+Debes seguir utilizando:
+
+ansible_hostname;
+web_message;
+web_environment.
+
+Requisito 3 — Primera condición
+
+Añade una tarea nueva que solo se ejecute en el servidor cuyo entorno sea production.
+
+La tarea debe crear:
+
+/var/www/html/production.txt
+
+El contenido debe ser:
+
+Este servidor es de PRODUCCION
+
+Para decidir si la tarea se ejecuta o no debes utilizar:
+
+when
+
+No debes crear un playbook diferente.
+
+No debes crear un grupo nuevo.
+
+La decisión debe depender de la variable:
+
+web_environment
+Requisito 4 — Condición inversa
+
+Añade otra tarea que solo se ejecute cuando el servidor NO sea de producción.
+
+Debe crear:
+
+/var/www/html/development.txt
+
+con el contenido:
+
+Este servidor NO es de PRODUCCION
+
+También debes utilizar when.
+
+Requisito 5 — Mantener lo aprendido
+
+El playbook debe conservar:
+
+hosts: web;
+become: true;
+FQCN;
+instalación de nginx;
+nginx habilitado;
+nginx arrancado;
+group_vars;
+host_vars;
+facts;
+handler;
+idempotencia.
+Resultado esperado
+
+Después de ejecutar el playbook:
+
+En lab1
+
+Debe existir:
+
+/var/www/html/index.html
+/var/www/html/production.txt
+
+Y no debe existir:
+
+/var/www/html/development.txt
+En lab2
+
+Debe existir:
+
+/var/www/html/index.html
+/var/www/html/development.txt
+
+Y no debe existir:
+
+/var/www/html/production.txt
+⚠️ Pista conceptual importante
+
+when no crea estados por sí mismo.
+
+Si una tarea tiene:
+
+when: web_environment == 'production'
+
+esa tarea simplemente:
+
+production → se ejecuta
+development → se salta
+
+Pero piensa en qué ocurriría si:
+
+ejecutas el playbook cuando un host es production;
+se crea production.txt;
+cambias posteriormente su variable a development;
+vuelves a ejecutar.
+
+Este detalle será importante para entender la diferencia entre:
+
+ejecución condicional
+
+y:
+
+gestión declarativa del estado
+
+Por ahora, no tienes que resolver ese caso adicional, pero quiero que observes qué ocurre.
+
+Comprobaciones
+
+Antes de ejecutar el playbook, comprueba las variables.
+
+Puedes probar algo como:
+
+ansible web -i hosts -m ansible.builtin.debug -a "var=web_environment"
+
+Deberías obtener valores distintos según el host.
+
+Después ejecuta:
+
+ansible-playbook -i hosts site.yml
+
+Y comprueba los ficheros:
+
+ansible web -i hosts -m ansible.builtin.command -a "ls -l /var/www/html/"
+Estructura esperada al terminar
+Certi/
+├── apuntes.txt
+├── enunciados.txt
+├── hosts
+├── site.yml
+├── group_vars/
+│   └── web.yml
+└── host_vars/
+    ├── lab1.yml
+    └── lab2.yml
+🧠 Qué debes sacar en claro del EX03
+
+Al terminar debes entender:
+
+group_vars
+    ↓
+Configuración común para un grupo
+
+host_vars
+    ↓
+Configuración específica para un host
+
+when
+    ↓
+Decidir si una tarea se ejecuta según una condición
+
+La progresión hasta ahora es:
+
+EX01 → Mismo estado para todos
+EX02 → Configuración común por grupo
+EX03 → Diferencias por host + ejecución condicional

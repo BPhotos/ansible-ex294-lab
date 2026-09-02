@@ -11,9 +11,21 @@
   
   - name: Crea página Web
     ansible.builtin.copy:
-      content: "Servidor: {{ ansible_hostname }}\n{{ web_message }}"
+      content: "Servidor: {{ ansible_hostname }}\n{{ web_message }}\n{{ web_environment }}"
       dest: /var/www/html/index.html
     notify: reinicia nginx
+
+  - name: Crea txt
+    ansible.builtin.copy:
+      content: "Este servidor es de PRODUCCIÓN"
+      dest: /var/www/html/production.txt
+    when: web_environment == "producción"
+
+  - name: Crea txt2
+    ansible.builtin.copy:
+      content: "Este servidor NO es PRODUCCION"
+      dest: /var/www/html/development.txt
+    when: web_environment != "producción"
  
   - name: activar nginx
     ansible.builtin.service:
