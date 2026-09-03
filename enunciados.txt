@@ -570,3 +570,221 @@ DECIDIR
 ACTUAR
 
 Y ese patrón conecta bastante directamente con el troubleshooting que hiciste en la infraestructura real: comprobar SSH/Python, interpretar el resultado y separar los hosts según su comportamiento.
+
+EX05 
+EX05 — Loops (loop) y automatización repetitiva
+🎯 Objetivo
+
+Aprender a ejecutar una misma tarea sobre varios elementos sin repetir la tarea manualmente.
+
+Hasta ahora podrías hacer algo así:
+
+- name: Instalar curl
+  ansible.builtin.apt:
+    name: curl
+    state: present
+
+- name: Instalar vim
+  ansible.builtin.apt:
+    name: vim
+    state: present
+
+- name: Instalar tree
+  ansible.builtin.apt:
+    name: tree
+    state: present
+
+Funciona, pero es repetitivo.
+
+Con loop:
+
+UNA TAREA
+    +
+UNA LISTA
+    ↓
+REPETIR AUTOMÁTICAMENTE
+
+Requisito 1 — Instalar varios paquetes
+
+En tu mismo site.yml, añade una tarea para instalar estos paquetes:
+
+curl
+vim
+tree
+
+Debes utilizar:
+
+ansible.builtin.apt
+
+y:
+
+loop
+
+La estructura conceptual es:
+
+- name: Instalar paquetes
+  ansible.builtin.apt:
+    name: ...
+    state: present
+  loop:
+    - ...
+    - ...
+    - ...
+
+Dentro del módulo tendrás que utilizar la variable especial:
+
+item
+Requisito 2 — Crear varios directorios
+
+Crea los siguientes directorios:
+
+/opt/lab
+/opt/lab/logs
+/opt/lab/config
+
+Debes utilizar:
+
+ansible.builtin.file
+
+y:
+
+loop
+
+Todos deben tener:
+
+state: directory
+Requisito 3 — Crear varios archivos
+
+Dentro de los directorios anteriores, crea estos archivos:
+
+/opt/lab/config/app.conf
+/opt/lab/config/database.conf
+/opt/lab/logs/app.log
+
+Puedes utilizar:
+
+ansible.builtin.copy
+
+con contenido simple.
+
+Ejemplo conceptual:
+
+app.conf
+    ↓
+Configuración de aplicación
+
+database.conf
+    ↓
+Configuración de base de datos
+
+app.log
+    ↓
+Log inicializado por Ansible
+
+Aquí también debes utilizar:
+
+loop
+Requisito 4 — Loop con condiciones
+
+Ahora vamos a combinar EX03 + EX05.
+
+Tienes:
+
+lab1 → producción
+lab2 → Development
+
+Instala este paquete en ambos:
+
+htop
+
+Pero instala este otro paquete solamente en producción:
+
+ncdu
+
+Puedes hacerlo con tareas separadas y when, o si quieres experimentar, intentar combinar la lógica con loops.
+
+Requisito 5 — Loop + variables
+
+Este es el pequeño reto del módulo.
+
+En lugar de escribir directamente la lista de paquetes dentro de la tarea, crea una variable en:
+
+group_vars/web.yml
+
+Por ejemplo, conceptualmente:
+
+web_packages:
+  - curl
+  - vim
+  - tree
+
+Después utiliza esa variable en el loop.
+
+La idea es:
+
+group_vars
+      ↓
+web_packages
+      ↓
+loop
+      ↓
+item
+      ↓
+apt
+Resultado esperado
+
+Al terminar deberías poder pensar así:
+
+LISTA
+  ↓
+loop
+  ↓
+item 1
+item 2
+item 3
+  ↓
+MISMA TAREA EJECUTADA VARIAS VECES
+
+Y tu automatización debería dejar ambos servidores con una estructura similar a:
+
+/opt/lab/
+├── config/
+│   ├── app.conf
+│   └── database.conf
+└── logs/
+    └── app.log
+
+Con ncdu únicamente en:
+
+lab1 → producción
+Restricciones
+
+Mantén todo lo que ya tienes:
+
+group_vars
+host_vars
+when
+register
+debug
+handler
+idempotencia
+FQCN (ansible.builtin...)
+Concepto central del EX05
+Antes:
+
+TAREA 1 → curl
+TAREA 2 → vim
+TAREA 3 → tree
+
+
+Ahora:
+
+UNA TAREA
+    ↓
+loop
+    ↓
+curl
+vim
+tree
+
+Mi recomendación: haz primero el requisito 1 y pégame solo esa tarea. No intentes resolver los cinco de golpe; este módulo es para que interiorices muy bien la relación entre loop e item.

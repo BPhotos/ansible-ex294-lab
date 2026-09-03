@@ -1178,3 +1178,379 @@ DECIDIR
 ↓
 ACTUAR
 
+
+
+
+
+
+# EX05 - LOOPS Y AUTOMATIZACIÓN REPETITIVA
+
+## OBJETIVO
+
+Aprender a ejecutar una misma tarea varias veces utilizando:
+
+loop
+
+El objetivo de un loop es evitar repetir varias tareas iguales.
+
+En lugar de:
+
+* Instalar curl
+* Instalar vim
+* Instalar tree
+
+Se puede utilizar:
+
+Una tarea
++
+Una lista
+↓
+loop
+
+## LOOP SIMPLE
+
+Ejemplo:
+
+* name: Instalar varios paquetes
+  ansible.builtin.apt:
+  name: "{{ item }}"
+  state: present
+  loop:
+
+  * curl
+  * vim
+  * tree
+
+Durante cada iteración:
+
+item = curl
+
+item = vim
+
+item = tree
+
+## FLUJO
+
+loop
+│
+├── item = curl
+│       ↓
+│     apt instala curl
+│
+├── item = vim
+│       ↓
+│     apt instala vim
+│
+└── item = tree
+↓
+apt instala tree
+
+## ITEM
+
+item es la variable que representa el elemento actual del loop.
+
+Ejemplo:
+
+loop:
+
+* curl
+* vim
+* tree
+
+En cada vuelta:
+
+{{ item }}
+
+representa uno de los elementos de la lista.
+
+## CREAR DIRECTORIOS CON LOOP
+
+También se puede utilizar loop para crear varios directorios.
+
+Ejemplo:
+
+* name: Crear varios directorios
+  ansible.builtin.file:
+  path: "{{ item }}"
+  state: directory
+  loop:
+
+  * /opt/lab
+  * /opt/lab/logs
+  * /opt/lab/config
+
+En este caso:
+
+item = /opt/lab
+
+item = /opt/lab/logs
+
+item = /opt/lab/config
+
+## LOOP CON LISTAS DE DICCIONARIOS
+
+Cuando cada elemento necesita más de un dato, se puede utilizar una lista de diccionarios.
+
+Ejemplo:
+
+loop:
+
+* ruta: /opt/lab/config/app.conf
+  contenido: "Configuración de la aplicación"
+
+* ruta: /opt/lab/config/database.conf
+  contenido: "Configuración de la base de datos"
+
+* ruta: /opt/lab/logs/app.log
+  contenido: "Logs inicializados por Ansible"
+
+Cada item contiene:
+
+item
+│
+├── ruta
+└── contenido
+
+Por tanto se puede acceder a:
+
+{{ item.ruta }}
+
+{{ item.contenido }}
+
+## EJEMPLO COMPLETO
+
+* name: Crear varios archivos
+  ansible.builtin.copy:
+  content: "{{ item.contenido }}"
+  dest: "{{ item.ruta }}"
+  loop:
+
+  * ruta: /opt/lab/config/app.conf
+    contenido: "Configuración de la aplicación"
+
+  * ruta: /opt/lab/config/database.conf
+    contenido: "Configuración de la base de datos"
+
+  * ruta: /opt/lab/logs/app.log
+    contenido: "Logs inicializados por Ansible"
+
+## IMPORTANTE: ESTRUCTURA DE DICCIONARIOS
+
+Esto es INCORRECTO:
+
+* ruta: /opt/lab/config/app.conf
+* contenido: "Configuración"
+
+Porque crea dos elementos diferentes:
+
+item 1
+└── ruta
+
+item 2
+└── contenido
+
+Esto es CORRECTO:
+
+* ruta: /opt/lab/config/app.conf
+  contenido: "Configuración"
+
+Porque ambos valores pertenecen al mismo item:
+
+item
+├── ruta
+└── contenido
+
+## PARAMETROS DE UN MODULO
+
+Los parámetros de un módulo no llevan guiones.
+
+INCORRECTO:
+
+ansible.builtin.copy:
+
+* content: "..."
+* dest: "..."
+
+CORRECTO:
+
+ansible.builtin.copy:
+content: "..."
+dest: "..."
+
+## LOOP + WHEN
+
+Un loop puede combinarse con condiciones.
+
+Ejemplo:
+
+* name: Instalar paquete solo en producción
+  ansible.builtin.apt:
+  name: "{{ item }}"
+  state: present
+  loop:
+
+  * ncdu
+    when: web_environment == "producción"
+
+Resultado:
+
+lab1
+│
+├── web_environment = producción
+│
+└── ncdu → instalado
+
+lab2
+│
+├── web_environment = Development
+│
+└── ncdu → skipping
+
+## LOOP + VARIABLES
+
+Una lista también puede guardarse en una variable.
+
+Ejemplo en:
+
+group_vars/web.yml
+
+web_packages:
+
+* curl
+* vim
+* tree
+
+Después se puede utilizar directamente en el loop:
+
+* name: Instalar paquetes desde variable
+  ansible.builtin.apt:
+  name: "{{ item }}"
+  state: present
+  loop: "{{ web_packages }}"
+
+## FLUJO
+
+web_packages
+│
+├── curl
+├── vim
+└── tree
+↓
+loop
+↓
+item = curl
+item = vim
+item = tree
+
+## IMPORTANTE
+
+Esto:
+
+loop:
+
+* web_packages
+
+NO utiliza la variable.
+
+Simplemente crea una lista cuyo único elemento es el texto:
+
+"web_packages"
+
+Para utilizar una variable que contiene una lista:
+
+loop: "{{ web_packages }}"
+
+## REGLA MENTAL
+
+Si el loop contiene valores simples:
+
+loop:
+
+* curl
+* vim
+
+Se utiliza:
+
+{{ item }}
+
+Si el loop contiene diccionarios:
+
+loop:
+
+* ruta: ...
+  contenido: ...
+
+Se utiliza:
+
+{{ item.ruta }}
+
+{{ item.contenido }}
+
+Si la lista está guardada en una variable:
+
+web_packages:
+
+* curl
+* vim
+
+Se utiliza:
+
+loop: "{{ web_packages }}"
+
+## CONCEPTOS APRENDIDOS
+
+* loop
+* item
+* Loops simples
+* Loops para instalar paquetes
+* Loops para crear directorios
+* Loops para crear archivos
+* Listas
+* Diccionarios
+* Listas de diccionarios
+* item.clave
+* loop + when
+* loop + variables
+* Variables que contienen listas
+* group_vars
+* Indentación YAML
+* Diferencia entre listas y parámetros de módulos
+
+## IDEA PRINCIPAL DEL EX05
+
+Una misma tarea puede ejecutarse múltiples veces cambiando únicamente el valor de:
+
+item
+
+La evolución es:
+
+TAREA
++
+LISTA
+↓
+LOOP
+↓
+ITEM
+↓
+AUTOMATIZACIÓN REPETITIVA
+
+## CONCEPTO FINAL
+
+Loops simples:
+
+item = valor
+
+Loops con diccionarios:
+
+item.clave = valor
+
+Loops con variables:
+
+variable
+↓
+contiene una lista
+↓
+loop recorre la lista
+↓
+item representa cada elemento
+

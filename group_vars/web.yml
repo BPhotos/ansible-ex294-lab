@@ -1,2 +1,6 @@
 ---
 web_message: "Servidor gestionado por Ansible"
+web_packages:
+  - curl
+  - vim
+  - tree

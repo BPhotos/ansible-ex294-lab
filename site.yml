@@ -51,7 +51,7 @@
       msg: "nginx esta instalado en este servidor"
     when: nginx_check.rc == 0
 
-  - name: Condicion inversa
+  - name: Condicion inversa	
     ansible.builtin.debug:
       msg: "nginx no esta instalado en este servidor"
     when: nginx_check.rc != 0
@@ -67,9 +67,112 @@
       var: comprobacion
     when: web_environment == "producción"
  
+  - name: Instalar varios paquetes
+    ansible.builtin.apt:
+      name: "{{ item }}"
+      state: present
+    loop:
+      - curl
+      - vim
+      - tree
+
+  - name: Crear varios directorios  
+    ansible.builtin.file:
+      path: "{{ item }}"
+      state: directory
+    loop:
+      - /opt/lab
+      - /opt/lab/logs
+      - /opt/lab/config	
+
+  - name: Crear varios archivos
+    ansible.builtin.copy: 
+      content: "{{ item.contenido }}"
+      dest: "{{ item.ruta }}"
+    loop:
+      - ruta: /opt/lab/config/app.conf
+        contenido: "Configuración de la aplicación"
+
+      - ruta: /opt/lab/config/database.conf
+        contenido: "Configuración de la base de datos"
+
+      - ruta: /opt/lab/logs/app.log
+        contenido: "logs inicializados por ansible"
+
+  - name: loop con condiciones
+    ansible.builtin.apt:
+      name: "{{ item }}"
+      state: present
+    loop:
+      - htop
+
+  - name: loop en produccion
+    ansible.builtin.apt:
+      name: "{{ item }}"
+      state: present
+    loop:
+      - ncdu
+    when: web_environment == "producción"
+
+  - name: loop mas variable
+    ansible.builtin.apt:
+      name: "{{ item }}"
+      state: present
+    loop: "{{ web_packages }}"
 
   handlers:
     - name: reinicia nginx
       ansible.builtin.service:
         name: nginx
         state: restarted
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
