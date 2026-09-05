@@ -1,0 +1,11 @@
+{% if web_environment == "producción" %}
+Servidor: {{ ansible_hostname }}
+mensaje: {{ web_message }}
+Entorno: {{ web_environment }}
+ESTE SERVIDOR ES DE PRODUCCIÓN
+{% else %}
+Servidor: {{ ansible_hostname }}
+mensaje: {{ web_message }}
+Entorno: {{ web_environment }}
+ESTE SERVIDOR ES DE DESARROLLO
+{% endif %}

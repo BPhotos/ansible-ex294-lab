@@ -788,3 +788,284 @@ vim
 tree
 
 Mi recomendación: haz primero el requisito 1 y pégame solo esa tarea. No intentes resolver los cinco de golpe; este módulo es para que interiorices muy bien la relación entre loop e item.
+
+
+
+
+# BLOQUE 6 — TEMPLATES Y JINJA2
+
+## OBJETIVO
+
+Utilizar templates de Ansible para generar archivos dinámicos utilizando variables y condiciones Jinja2.
+
+Se utilizarán los servidores del grupo:
+
+web
+
+Las variables disponibles son:
+
+ansible_hostname
+web_message
+web_environment
+
+La página web se generará en:
+
+/var/www/html/index.html
+
+---
+
+# BLOQUE 6 — TEMPLATES Y JINJA2
+
+## OBJETIVO
+
+Utilizar templates de Ansible para generar archivos dinámicos en los servidores web.
+
+Los archivos generados deberán utilizar las variables ya existentes en el proyecto y mostrar contenido diferente dependiendo del entorno de cada servidor.
+
+## VARIABLES DISPONIBLES
+
+Durante el ejercicio se utilizarán las siguientes variables:
+
+ansible_hostname
+
+web_message
+
+web_environment
+
+El resultado final se generará en:
+
+/var/www/html/index.html
+
+==================================================
+REQUISITO 1 — CREAR EL DIRECTORIO DE TEMPLATES
+==============================================
+
+Dentro del proyecto de Ansible crea un directorio llamado:
+
+templates/
+
+La estructura del proyecto deberá quedar similar a:
+
+Certi/
+│
+├── hosts
+├── site.yml
+│
+├── group_vars/
+│   └── web.yml
+│
+├── host_vars/
+│   ├── lab1.yml
+│   └── lab2.yml
+│
+└── templates/
+└── index.html.j2
+
+==================================================
+REQUISITO 2 — CREAR EL TEMPLATE
+===============================
+
+Dentro del directorio:
+
+templates/
+
+Crea un archivo llamado:
+
+index.html.j2
+
+El template deberá utilizar las siguientes variables:
+
+ansible_hostname
+
+web_message
+
+web_environment
+
+El resultado generado deberá mostrar información similar a:
+
+Servidor: nombre_del_servidor
+
+mensaje: mensaje_definido_en_la_variable
+
+Entorno: entorno_del_servidor
+
+==================================================
+REQUISITO 3 — UTILIZAR VARIABLES DE ANSIBLE
+===========================================
+
+El template deberá utilizar variables de Ansible mediante la sintaxis Jinja2:
+
+{{ variable }}
+
+Como mínimo deberán utilizarse:
+
+{{ ansible_hostname }}
+
+{{ web_message }}
+
+{{ web_environment }}
+
+El mismo template deberá generar contenido diferente dependiendo de las variables de cada servidor.
+
+==================================================
+REQUISITO 4 — DESPLEGAR EL TEMPLATE
+===================================
+
+Modifica el playbook:
+
+site.yml
+
+para generar la página web utilizando:
+
+ansible.builtin.template
+
+El template:
+
+index.html.j2
+
+deberá generarse en:
+
+/var/www/html/index.html
+
+La tarea deberá notificar al handler de nginx cuando el archivo sea modificado.
+
+El flujo esperado será:
+
+Template
+↓
+ansible.builtin.template
+↓
+/var/www/html/index.html
+↓
+notify
+↓
+Handler reinicia nginx
+
+==================================================
+REQUISITO 5 — CONTENIDO DIFERENTE SEGÚN EL ENTORNO
+==================================================
+
+Modifica el template:
+
+templates/index.html.j2
+
+para generar contenido diferente dependiendo del valor de:
+
+web_environment
+
+La condición deberá realizarse dentro del propio template utilizando Jinja2.
+
+Si el servidor pertenece al entorno:
+
+producción
+
+deberá mostrar:
+
+ESTE SERVIDOR ES DE PRODUCCIÓN
+
+Si el servidor pertenece a otro entorno deberá mostrar:
+
+ESTE SERVIDOR ES DE DESARROLLO
+
+La lógica deberá realizarse mediante una condición Jinja2.
+
+Pista conceptual:
+
+if
+else
+endif
+
+IMPORTANTE:
+
+Al comparar una variable con un valor de texto, el texto debe tratarse como una cadena.
+
+Ejemplo conceptual:
+
+web_environment == "producción"
+
+==================================================
+REQUISITO 6 — VERIFICAR EL RESULTADO GENERADO
+=============================================
+
+Después de desplegar el template, verifica desde Ansible el contenido del archivo:
+
+/var/www/html/index.html
+
+Para ello:
+
+1. Ejecuta un comando desde Ansible para leer el archivo.
+
+2. Guarda el resultado utilizando:
+
+register
+
+3. Evita que una tarea de comprobación aparezca como un cambio si no modifica el sistema.
+
+4. Muestra únicamente el contenido relevante del resultado.
+
+La comprobación deberá permitir verificar que cada servidor ha generado su propio contenido.
+
+El resultado esperado será similar a:
+
+## LAB1
+
+Servidor: debian
+mensaje: Servidor gestionado por Ansible
+Entorno: producción
+ESTE SERVIDOR ES DE PRODUCCIÓN
+
+## LAB2
+
+Servidor: lab2
+mensaje: Servidor gestionado por Ansible
+Entorno: Development
+ESTE SERVIDOR ES DE DESARROLLO
+
+==================================================
+RESULTADO FINAL ESPERADO
+========================
+
+El ejercicio completo deberá demostrar:
+
+Variables
++
+Templates
++
+Jinja2
++
+Condiciones
++
+ansible.builtin.template
++
+notify
++
+handlers
++
+command
++
+register
++
+changed_when
++
+debug
+
+## FLUJO FINAL
+
+Variables del inventario
+↓
+Template Jinja2
+↓
+Evaluar el entorno
+↓
+Generar contenido diferente
+↓
+Crear index.html en cada servidor
+↓
+Reiniciar nginx si hubo cambios
+↓
+Verificar el archivo generado
+↓
+Guardar resultado
+↓
+Mostrar únicamente la información relevante
+

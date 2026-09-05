@@ -1554,3 +1554,548 @@ loop recorre la lista
 ↓
 item representa cada elemento
 
+
+
+# BLOQUE 6 — TEMPLATES, JINJA2 Y VERIFICACIÓN
+
+1. ¿QUÉ ES UN TEMPLATE EN ANSIBLE?
+
+---
+
+Un template permite generar un archivo dinámicamente utilizando variables y lógica Jinja2.
+
+A diferencia de:
+
+ansible.builtin.copy
+
+que copia contenido estático, el módulo:
+
+ansible.builtin.template
+
+procesa las variables antes de generar el archivo en el servidor remoto.
+
+Flujo:
+
+Variables
+↓
+Template Jinja2
+↓
+Ansible procesa {{ variables }}
+↓
+Archivo generado en el servidor remoto
+
+Ejemplo:
+
+templates/index.html.j2
+
+Servidor: {{ ansible_hostname }}
+mensaje: {{ web_message }}
+Entorno: {{ web_environment }}
+
+Cada servidor puede generar un contenido diferente utilizando el mismo template.
+
+2. ESTRUCTURA DEL PROYECTO
+
+---
+
+Una estructura típica es:
+
+Certi/
+│
+├── hosts
+├── site.yml
+│
+├── group_vars/
+│   └── web.yml
+│
+├── host_vars/
+│   ├── lab1.yml
+│   └── lab2.yml
+│
+└── templates/
+└── index.html.j2
+
+Los templates se guardan habitualmente dentro del directorio:
+
+templates/
+
+3. USO DEL MÓDULO TEMPLATE
+
+---
+
+Ejemplo:
+
+* name: Crear pagina web desde template
+  ansible.builtin.template:
+  src: index.html.j2
+  dest: /var/www/html/index.html
+  notify: reinicia nginx
+
+Parámetros principales:
+
+src
+Archivo template en el controlador Ansible.
+
+dest
+Ruta donde se generará el archivo en el servidor remoto.
+
+El módulo procesa las variables Jinja2 y genera el archivo final.
+
+4. ERROR DE RUTA DEL TEMPLATE
+
+---
+
+Inicialmente se produjo el error:
+
+Could not find or access '/templates/index.html.j2'
+
+El problema era una ruta incorrecta del template.
+
+En este proyecto, al utilizar el directorio estándar:
+
+templates/
+
+Ansible puede localizar automáticamente el archivo utilizando:
+
+src: index.html.j2
+
+Es importante diferenciar:
+
+CONTROLADOR ANSIBLE
+templates/index.html.j2
+
+SERVIDOR REMOTO
+/var/www/html/index.html
+
+El template existe en el controlador.
+
+El archivo generado existe en el servidor remoto.
+
+5. VARIABLES EN UN TEMPLATE
+
+---
+
+Las variables se utilizan mediante:
+
+{{ nombre_variable }}
+
+Ejemplo:
+
+Servidor: {{ ansible_hostname }}
+mensaje: {{ web_message }}
+Entorno: {{ web_environment }}
+
+Al ejecutar el playbook, cada servidor genera su propio archivo utilizando sus variables.
+
+Ejemplo conceptual:
+
+lab1:
+
+Servidor: debian
+mensaje: Servidor gestionado por Ansible
+Entorno: producción
+
+lab2:
+
+Servidor: lab2
+mensaje: Servidor gestionado por Ansible
+Entorno: Development
+
+6. ERROR DE VARIABLE MAL ESCRITA
+
+---
+
+Se produjo el error:
+
+'web_enviroment' is undefined
+
+El problema era un error tipográfico.
+
+Variable incorrecta:
+
+web_enviroment
+
+Variable correcta:
+
+web_environment
+
+Ansible detecta que la variable no existe y detiene la ejecución.
+
+Es importante respetar exactamente el nombre de las variables.
+
+7. CONDICIONES DENTRO DEL TEMPLATE CON JINJA2
+
+---
+
+Los templates utilizan Jinja2.
+
+Jinja2 permite incluir condiciones directamente dentro del archivo.
+
+Estructura:
+
+{% if condicion %}
+
+contenido si se cumple
+
+{% else %}
+
+contenido si no se cumple
+
+{% endif %}
+
+En este ejercicio se generó contenido diferente dependiendo de:
+
+web_environment
+
+Ejemplo conceptual:
+
+{% if web_environment == "producción" %}
+
+ESTE SERVIDOR ES DE PRODUCCIÓN
+
+{% else %}
+
+ESTE SERVIDOR ES DE DESARROLLO
+
+{% endif %}
+
+## IMPORTANTE SOBRE LAS COMILLAS
+
+Al comparar una variable con un valor de texto dentro del template, el valor de texto debe ir entre comillas.
+
+Ejemplo correcto:
+
+{% if web_environment == "producción" %}
+
+El valor:
+
+"producción"
+
+es una cadena de texto.
+
+Si no se indican correctamente las comillas, Jinja puede intentar interpretar el valor como otra variable o expresión y producir un error.
+
+Por tanto, para comparar con un texto:
+
+CORRECTO:
+
+{% if web_environment == "producción" %}
+
+INCORRECTO:
+
+{% if web_environment == producción %}
+
+La condición debe tratar:
+
+producción
+
+como texto y no como una variable.
+
+Flujo:
+
+web_environment
+↓
+Jinja2 evalúa condición
+↓
+¿Es igual a "producción"?
+│
+├── Sí
+│     ↓
+│   Mostrar mensaje de producción
+│
+└── No
+↓
+Mostrar mensaje de desarrollo
+
+La lógica está dentro del template.
+
+No es necesario crear un template diferente para cada servidor.
+
+8. RESULTADO DEL TEMPLATE
+
+---
+
+Producción:
+
+Servidor: debian
+mensaje: Servidor gestionado por Ansible
+Entorno: producción
+ESTE SERVIDOR ES DE PRODUCCIÓN
+
+Desarrollo:
+
+Servidor: lab2
+mensaje: Servidor gestionado por Ansible
+Entorno: Development
+ESTE SERVIDOR ES DE DESARROLLO
+
+El mismo template genera contenido diferente dependiendo de las variables del host.
+
+9. NOTIFY Y HANDLERS
+
+---
+
+La tarea del template utiliza:
+
+notify: reinicia nginx
+
+Esto provoca que el handler solo se ejecute si el template modifica el archivo.
+
+Ejemplo:
+
+handlers:
+
+* name: reinicia nginx
+  ansible.builtin.service:
+  name: nginx
+  state: restarted
+
+Primera ejecución:
+
+Template cambia
+↓
+notify
+↓
+Handler reinicia nginx
+
+Segunda ejecución sin cambios:
+
+Template no cambia
+↓
+Handler no se ejecuta
+
+Esto ayuda a mantener la automatización idempotente.
+
+10. VERIFICAR EL ARCHIVO GENERADO
+
+---
+
+Después de generar el template, se puede verificar su contenido utilizando:
+
+ansible.builtin.command
+
+Ejemplo:
+
+* name: Verificar el resultado generado
+  ansible.builtin.command:
+  cmd: cat /var/www/html/index.html
+  register: comprobante
+  changed_when: false
+
+El resultado del comando se guarda en:
+
+comprobante
+
+11. REGISTER
+
+---
+
+register permite guardar el resultado de una tarea en una variable.
+
+Ejemplo:
+
+register: comprobante
+
+La variable contiene información como:
+
+comprobante.rc
+comprobante.stdout
+comprobante.stderr
+comprobante.stdout_lines
+comprobante.changed
+
+Ejemplo:
+
+rc
+Código de salida.
+
+stdout
+Salida estándar completa.
+
+stderr
+Salida de error.
+
+stdout_lines
+Salida dividida por líneas.
+
+12. CHANGED_WHEN: FALSE
+
+---
+
+El comando:
+
+cat /var/www/html/index.html
+
+solo consulta información.
+
+No modifica el servidor.
+
+Sin embargo, ansible.builtin.command puede marcar la tarea como:
+
+changed
+
+Para indicar correctamente que la tarea es solamente una comprobación se utiliza:
+
+changed_when: false
+
+Ejemplo:
+
+* name: Verificar el resultado generado
+  ansible.builtin.command:
+  cmd: cat /var/www/html/index.html
+  register: comprobante
+  changed_when: false
+
+Resultado:
+
+ok
+
+en lugar de:
+
+changed
+
+Principio importante:
+
+Ejecutar un comando no significa necesariamente modificar el sistema.
+
+13. MOSTRAR SOLO LA INFORMACIÓN RELEVANTE
+
+---
+
+Inicialmente se utilizó:
+
+ansible.builtin.debug:
+var: comprobante
+
+Esto muestra toda la estructura:
+
+cmd
+delta
+start
+end
+rc
+stdout
+stderr
+changed
+...
+
+Si solo interesa mostrar el contenido del archivo es más limpio utilizar:
+
+* name: Mostrar comprobante
+  ansible.builtin.debug:
+  msg: "{{ comprobante.stdout }}"
+
+Esto muestra únicamente la salida estándar.
+
+14. LOS SALTOS DE LÍNEA EN DEBUG
+
+---
+
+Al mostrar:
+
+{{ comprobante.stdout }}
+
+Ansible puede representar los saltos de línea como:
+
+\n
+
+Ejemplo:
+
+"Servidor: debian\nmensaje: ..."
+
+Esto no significa necesariamente que el archivo esté mal generado.
+
+El contenido real puede comprobarse mediante un comando ad-hoc:
+
+ansible web -i hosts -m ansible.builtin.command -a "cat /var/www/html/index.html"
+
+Resultado:
+
+Servidor: debian
+mensaje: Servidor gestionado por Ansible
+Entorno: producción
+ESTE SERVIDOR ES DE PRODUCCIÓN
+
+lab2:
+
+Servidor: lab2
+mensaje: Servidor gestionado por Ansible
+Entorno: Development
+ESTE SERVIDOR ES DE DESARROLLO
+
+15. RESULTADO FINAL DEL BLOQUE
+
+---
+
+En este bloque se han combinado:
+
+Variables
++
+group_vars
++
+host_vars
++
+Templates
++
+Jinja2
++
+Condiciones dentro del template
++
+Comparación de cadenas de texto con comillas
++
+template
++
+notify
++
+handlers
++
+command
++
+register
++
+changed_when
++
+debug
+
+Flujo completo:
+
+Variables
+↓
+Template Jinja2
+↓
+Condición según entorno
+↓
+Comparación correcta del texto entre comillas
+↓
+Generar index.html diferente por servidor
+↓
+Desplegar mediante template
+↓
+Notificar al handler
+↓
+Reiniciar nginx si hubo cambios
+↓
+Leer el archivo generado
+↓
+Guardar resultado con register
+↓
+changed_when: false
+↓
+Mostrar resultado relevante
+
+## CONCLUSIÓN
+
+Un template permite generar archivos dinámicos a partir de variables y lógica Jinja2.
+
+El mismo template puede producir resultados diferentes para distintos servidores.
+
+Las condiciones Jinja2 permiten introducir lógica directamente dentro del archivo generado.
+
+Cuando se compara una variable con un valor de texto, el valor debe tratarse como una cadena y utilizar correctamente las comillas.
+
+register permite almacenar el resultado de una tarea para utilizarlo posteriormente.
+
+changed_when permite corregir el estado mostrado por Ansible cuando una tarea realiza una comprobación pero no modifica el sistema.
+
+La combinación de templates, variables, condiciones y verificación permite construir automatizaciones dinámicas, reutilizables e idempotentes.
+

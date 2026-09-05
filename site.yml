@@ -120,59 +120,28 @@
       state: present
     loop: "{{ web_packages }}"
 
+  - name: Crear pagina web desde template
+    ansible.builtin.template:
+      src: index.html.j2
+      dest: /var/www/html/index.html
+    notify: reinicia nginx
+
+  - name: verificar el resultado generado 
+    ansible.builtin.command:
+      cmd: cat /var/www/html/index.html
+    register: comprobante
+    changed_when: false
+
+  - name: Mostrar comprobante
+    ansible.builtin.debug:
+      msg: "{{ comprobante.stdout }}"
+
+
+
+
   handlers:
     - name: reinicia nginx
       ansible.builtin.service:
         name: nginx
         state: restarted
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
