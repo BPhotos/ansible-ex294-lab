@@ -1069,3 +1069,362 @@ Guardar resultado
 ↓
 Mostrar únicamente la información relevante
 
+
+
+
+
+# BLOQUE 7 — ROLES EN ANSIBLE
+
+## OBJETIVO
+
+Aprender a organizar un proyecto de Ansible utilizando Roles.
+
+Hasta ahora, la mayor parte de las tareas se encuentran dentro de:
+
+site.yml
+
+El objetivo de este bloque es separar la configuración relacionada con el servidor web dentro de un Role.
+
+El concepto principal es:
+
+site.yml
+↓
+Orquesta qué se ejecuta
+
+Role
+↓
+Contiene la implementación de una responsabilidad concreta
+
+En este bloque se creará un Role llamado:
+
+web
+
+==================================================
+REQUISITO 1 — CREAR EL ROLE
+===========================
+
+Dentro del proyecto de Ansible crea un Role llamado:
+
+web
+
+La estructura deberá contener como mínimo:
+
+roles/
+└── web/
+├── tasks/
+│   └── main.yml
+│
+├── handlers/
+│   └── main.yml
+│
+└── templates/
+└── index.html.j2
+
+Puedes crear esta estructura manualmente o utilizar las herramientas disponibles en Ansible para generar la estructura inicial de un Role.
+
+Objetivo conceptual:
+
+roles/
+↓
+web
+↓
+Responsabilidad: configurar un servidor web
+
+==================================================
+REQUISITO 2 — MOVER LAS TAREAS WEB AL ROLE
+==========================================
+
+Dentro del archivo:
+
+roles/web/tasks/main.yml
+
+mueve las tareas necesarias para configurar el servidor web.
+
+Como mínimo, el Role deberá encargarse de:
+
+1. Instalar nginx.
+
+2. Habilitar nginx para que arranque automáticamente.
+
+3. Arrancar nginx.
+
+4. Generar la página web:
+
+/var/www/html/index.html
+
+La página deberá generarse utilizando un template.
+
+IMPORTANTE:
+
+El archivo:
+
+roles/web/tasks/main.yml
+
+contiene directamente las tareas del Role.
+
+No es necesario definir dentro de él un Play completo.
+
+El objetivo conceptual es:
+
+Role web
+↓
+Instalar nginx
+↓
+Configurar nginx
+↓
+Generar página web
+
+==================================================
+REQUISITO 3 — MOVER EL HANDLER AL ROLE
+======================================
+
+El handler encargado de reiniciar nginx deberá moverse desde:
+
+site.yml
+
+a:
+
+roles/web/handlers/main.yml
+
+El handler deberá continuar realizando la misma función:
+
+reiniciar nginx
+
+La tarea que genera el template deberá continuar notificando al handler cuando el archivo cambie.
+
+IMPORTANTE:
+
+El archivo:
+
+roles/web/handlers/main.yml
+
+contiene directamente los handlers del Role.
+
+==================================================
+REQUISITO 4 — MOVER EL TEMPLATE AL ROLE
+=======================================
+
+Mueve el template:
+
+index.html.j2
+
+desde su ubicación anterior al directorio:
+
+roles/web/templates/
+
+La estructura deberá quedar:
+
+roles/web/
+├── tasks/
+├── handlers/
+└── templates/
+└── index.html.j2
+
+La tarea encargada de generar la página deberá utilizar el template desde la estructura del Role.
+
+Comprueba que:
+
+lab1
+
+sigue generando contenido correspondiente al entorno de producción.
+
+Y que:
+
+lab2
+
+sigue generando contenido correspondiente al entorno de desarrollo.
+
+==================================================
+REQUISITO 5 — SIMPLIFICAR SITE.YML
+==================================
+
+Modifica:
+
+site.yml
+
+para utilizar el Role:
+
+web
+
+El Playbook deberá seguir definiendo:
+
+* Nombre del Play.
+* Hosts.
+* Privilegios necesarios.
+* Role que se debe aplicar.
+
+La responsabilidad del:
+
+site.yml
+
+será principalmente orquestar qué Role se ejecuta sobre qué servidores.
+
+Conceptualmente:
+
+site.yml
+↓
+Aplicar Role web
+↓
+Servidores del grupo web
+
+==================================================
+REQUISITO 6 — MANTENER COMPROBACIONES EN SITE.YML
+=================================================
+
+Las tareas de comprobación y ejercicios anteriores pueden continuar existiendo dentro de:
+
+site.yml
+
+junto con la ejecución del Role.
+
+La estructura conceptual será:
+
+site.yml
+│
+├── Configuración del Play
+│
+├── Roles
+│   └── web
+│
+└── Tasks
+├── Comprobaciones
+├── Register
+├── Debug
+├── When
+└── Otros ejercicios
+
+El objetivo es comprender que:
+
+Roles
+y
+Tasks directas en un Playbook
+
+pueden convivir.
+
+==================================================
+REQUISITO 7 — EJECUTAR Y VALIDAR
+================================
+
+Ejecuta el Playbook sobre los servidores definidos en:
+
+hosts
+
+Comprueba que:
+
+1. nginx está instalado.
+
+2. nginx está habilitado.
+
+3. nginx está arrancado.
+
+4. La página web se genera correctamente.
+
+5. El contenido generado es diferente dependiendo del entorno.
+
+6. El handler se ejecuta cuando existen cambios.
+
+7. Las comprobaciones existentes en el Playbook continúan funcionando.
+
+También deberás comprobar que no existen tareas duplicadas entre:
+
+site.yml
+
+y:
+
+roles/web/tasks/main.yml
+
+==================================================
+RESULTADO FINAL ESPERADO
+========================
+
+La estructura del proyecto deberá separar claramente:
+
+ORQUESTACIÓN
+↓
+site.yml
+
+RESPONSABILIDAD WEB
+↓
+roles/web/
+
+El Role web contendrá:
+
+roles/web/
+│
+├── tasks/
+│   └── main.yml
+│
+├── handlers/
+│   └── main.yml
+│
+└── templates/
+└── index.html.j2
+
+El Playbook principal será el encargado de indicar:
+
+Qué servidores
+↓
+Qué privilegios
+↓
+Qué Role ejecutar
+↓
+Qué comprobaciones adicionales realizar
+
+==================================================
+CONCEPTO PRINCIPAL DEL BLOQUE
+=============================
+
+Un Role encapsula una responsabilidad.
+
+Ejemplo:
+
+Role web
+
+Responsabilidad:
+
+Configurar un servidor web.
+
+El Role contiene la implementación.
+
+El Playbook decide dónde se aplica.
+
+Flujo:
+
+site.yml
+↓
+Selecciona servidores
+↓
+Aplica Role web
+↓
+Role ejecuta tareas
+↓
+Role utiliza templates
+↓
+Role puede utilizar handlers
+↓
+Servidor configurado
+
+## OBJETIVO DE APRENDIZAJE
+
+Al finalizar este bloque debes ser capaz de diferenciar entre:
+
+Playbook
+↓
+Orquestación
+
+Role
+↓
+Organización y reutilización de una responsabilidad
+
+Tasks
+↓
+Acciones a ejecutar
+
+Handlers
+↓
+Acciones desencadenadas por cambios
+
+Templates
+↓
+Archivos dinámicos generados mediante variables y Jinja2
+

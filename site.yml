@@ -2,19 +2,10 @@
 - name: instalar nginx
   hosts: web
   become: true
+  roles:
+    - web 
 
   tasks:
-  - name: Instalar nginx
-    ansible.builtin.apt:
-      name: nginx
-      state: present
-  
-  - name: Crea página Web
-    ansible.builtin.copy:
-      content: "Servidor: {{ ansible_hostname }}\n{{ web_message }}\n{{ web_environment }}"
-      dest: /var/www/html/index.html
-    notify: reinicia nginx
-
   - name: Crea txt
     ansible.builtin.copy:
       content: "Este servidor es de PRODUCCIÓN"
@@ -27,16 +18,6 @@
       dest: /var/www/html/development.txt
     when: web_environment != "producción"
  
-  - name: activar nginx
-    ansible.builtin.service:
-      name: nginx
-      enabled: yes
-
-  - name: Arrancar nginx
-    ansible.builtin.service:
-      name: nginx 
-      state: started
-
   - name: Comprobar si existe nginx
     ansible.builtin.command:
       cmd: ls -lrt /usr/sbin/nginx
@@ -120,12 +101,6 @@
       state: present
     loop: "{{ web_packages }}"
 
-  - name: Crear pagina web desde template
-    ansible.builtin.template:
-      src: index.html.j2
-      dest: /var/www/html/index.html
-    notify: reinicia nginx
-
   - name: verificar el resultado generado 
     ansible.builtin.command:
       cmd: cat /var/www/html/index.html
@@ -135,13 +110,3 @@
   - name: Mostrar comprobante
     ansible.builtin.debug:
       msg: "{{ comprobante.stdout }}"
-
-
-
-
-  handlers:
-    - name: reinicia nginx
-      ansible.builtin.service:
-        name: nginx
-        state: restarted
-

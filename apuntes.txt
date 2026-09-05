@@ -2099,3 +2099,703 @@ changed_when permite corregir el estado mostrado por Ansible cuando una tarea re
 
 La combinación de templates, variables, condiciones y verificación permite construir automatizaciones dinámicas, reutilizables e idempotentes.
 
+
+
+
+
+# BLOQUE 7 — ROLES EN ANSIBLE
+
+## OBJETIVO
+
+Aprender a organizar un proyecto de Ansible utilizando Roles.
+
+Hasta ahora, la mayor parte de las tareas se encontraban dentro de:
+
+site.yml
+
+Un Role permite agrupar todo lo relacionado con una responsabilidad concreta.
+
+Ejemplo:
+
+Role: web
+
+Responsabilidad:
+
+Configurar un servidor web.
+
+## CONCEPTO PRINCIPAL
+
+Un Playbook y un Role tienen responsabilidades diferentes.
+
+site.yml
+↓
+Orquesta la ejecución
+
+Role
+↓
+Contiene la implementación de una responsabilidad
+
+Ejemplo:
+
+site.yml
+↓
+Aplicar Role web
+↓
+El Role configura nginx
+
+---
+
+1. ESTRUCTURA DE UN ROLE
+
+---
+
+La estructura utilizada fue:
+
+roles/
+└── web/
+├── tasks/
+│   └── main.yml
+│
+├── handlers/
+│   └── main.yml
+│
+└── templates/
+└── index.html.j2
+
+Cada directorio tiene una responsabilidad.
+
+tasks/
+
+Contiene las tareas del Role.
+
+handlers/
+
+Contiene los handlers del Role.
+
+templates/
+
+Contiene los templates utilizados por el Role.
+
+---
+
+2. TASKS/MAIN.YML
+
+---
+
+Dentro de:
+
+roles/web/tasks/main.yml
+
+se colocan directamente las tareas.
+
+Ejemplo conceptual:
+
+---
+
+* name: Tarea 1
+  ...
+
+* name: Tarea 2
+  ...
+
+## ERROR COMETIDO
+
+Inicialmente se intentó utilizar:
+
+---
+
+tasks:
+
+* name: Instalar nginx
+  ...
+
+Esto es incorrecto dentro de:
+
+roles/web/tasks/main.yml
+
+El archivo ya se encuentra dentro del contexto:
+
+tasks/
+
+Por tanto, Ansible ya sabe que el contenido son tareas.
+
+CORRECTO:
+
+---
+
+* name: Instalar nginx
+  ...
+
+* name: Otra tarea
+  ...
+
+## CONCEPTO
+
+En un Playbook:
+
+Play
+↓
+tasks:
+↓
+Lista de tareas
+
+En un Role:
+
+tasks/main.yml
+↓
+Lista directa de tareas
+
+No es necesario volver a declarar:
+
+tasks:
+
+---
+
+3. TAREAS DEL ROLE WEB
+
+---
+
+El Role web se encargó de:
+
+1. Instalar nginx.
+
+2. Habilitar nginx.
+
+3. Arrancar nginx.
+
+4. Generar la página web utilizando un template.
+
+Conceptualmente:
+
+Role web
+↓
+Instalar nginx
+↓
+Habilitar nginx
+↓
+Arrancar nginx
+↓
+Generar index.html
+
+Esto permite encapsular toda la responsabilidad de configurar un servidor web.
+
+---
+
+4. HANDLERS/MAIN.YML
+
+---
+
+Los handlers también pueden pertenecer directamente a un Role.
+
+Archivo:
+
+roles/web/handlers/main.yml
+
+## ERROR COMETIDO
+
+Inicialmente se utilizó:
+
+handlers:
+
+* name: reinicia nginx
+  ...
+
+Esto es incorrecto dentro de:
+
+handlers/main.yml
+
+Al igual que ocurre con:
+
+tasks/main.yml
+
+el contexto ya viene definido por el directorio.
+
+CORRECTO:
+
+---
+
+* name: reinicia nginx
+  ansible.builtin.service:
+  name: nginx
+  state: restarted
+
+## CONCEPTO
+
+Playbook:
+
+handlers:
+
+* handler
+
+Role:
+
+handlers/main.yml
+↓
+Lista directa de handlers
+
+No es necesario volver a declarar:
+
+handlers:
+
+---
+
+5. RELACIÓN ENTRE TASKS Y HANDLERS
+
+---
+
+Una tarea del Role puede notificar a un handler del mismo Role.
+
+Flujo:
+
+tasks/main.yml
+│
+│ notify
+▼
+handlers/main.yml
+│
+▼
+reinicia nginx
+
+Ejemplo conceptual:
+
+Tarea modifica template
+↓
+notify: reinicia nginx
+↓
+Handler marcado
+↓
+Finaliza la ejecución de tareas
+↓
+Handler reinicia nginx
+
+El handler solamente debe ejecutarse cuando se produce un cambio en una tarea que lo notifica.
+
+---
+
+6. TEMPLATES DENTRO DE UN ROLE
+
+---
+
+El template fue movido a:
+
+roles/web/templates/index.html.j2
+
+Desde una tarea dentro del mismo Role se puede utilizar:
+
+src: index.html.j2
+
+No es necesario utilizar:
+
+roles/web/templates/index.html.j2
+
+El Role proporciona un contexto de búsqueda para sus propios recursos.
+
+Conceptualmente:
+
+Role web
+│
+├── tasks/main.yml
+│
+└── templates/
+└── index.html.j2
+
+La tarea del Role puede encontrar automáticamente:
+
+index.html.j2
+
+dentro del directorio:
+
+templates/
+
+---
+
+7. FALLO REAL DEL TEMPLATE
+
+---
+
+Después de mover correctamente el template al Role, el Playbook falló con:
+
+Could not find or access 'index.html.j2'
+
+Ansible indicó que estaba buscando el archivo en:
+
+/home/bertophoto/ansible/Certi/templates/index.html.j2
+
+y:
+
+/home/bertophoto/ansible/Certi/index.html.j2
+
+El error también indicaba:
+
+Origin: /home/bertophoto/ansible/Certi/site.yml
+
+## CAUSA DEL ERROR
+
+La tarea:
+
+Crear pagina web desde template
+
+seguía existiendo dentro de:
+
+site.yml
+
+Pero el archivo:
+
+index.html.j2
+
+había sido movido a:
+
+roles/web/templates/index.html.j2
+
+Por tanto existían dos tareas conceptualmente iguales:
+
+ROLE WEB
+
+roles/web/tasks/main.yml
+↓
+Crear pagina web desde template
+↓
+Busca el template dentro del contexto del Role
+
+SITE.YML
+
+site.yml
+↓
+Crear pagina web desde template
+↓
+Busca el template dentro del contexto del Playbook
+
+La tarea dentro del Role encontraba correctamente:
+
+roles/web/templates/index.html.j2
+
+Pero la tarea antigua dentro de:
+
+site.yml
+
+intentaba buscar:
+
+Certi/templates/index.html.j2
+
+que ya no existía.
+
+## SOLUCIÓN CONCEPTUAL
+
+La tarea del template pertenecía a la responsabilidad:
+
+Configurar servidor web
+
+Por tanto, ya estaba correctamente ubicada dentro del Role:
+
+web
+
+La tarea antigua que permanecía en:
+
+site.yml
+
+estaba duplicada y debía eliminarse.
+
+## CONCEPTO APRENDIDO
+
+Al mover funcionalidad desde un Playbook a un Role hay que comprobar que no quedan tareas antiguas duplicadas.
+
+Antes:
+
+site.yml
+└── Crear template
+
+Después:
+
+site.yml
+↓
+Aplica Role web
+↓
+└── Crear template
+
+No deben mantenerse ambas tareas si realizan exactamente la misma función.
+
+---
+
+8. CONTEXTO DE BÚSQUEDA DE ARCHIVOS
+
+---
+
+El mismo:
+
+src: index.html.j2
+
+puede buscar en lugares diferentes dependiendo del contexto.
+
+Dentro del Role:
+
+roles/web/tasks/main.yml
+
+Ansible busca los recursos del Role, incluyendo:
+
+roles/web/templates/
+
+Fuera del Role, desde:
+
+site.yml
+
+Ansible utiliza las rutas de búsqueda correspondientes al Playbook.
+
+Por eso es importante saber:
+
+DÓNDE se encuentra la tarea
+
+y
+
+DÓNDE se encuentra el recurso.
+
+Flujo conceptual:
+
+Tarea dentro del Role
+↓
+Contexto del Role
+↓
+Busca templates del Role
+
+Tarea dentro de site.yml
+↓
+Contexto del Playbook
+↓
+Busca templates del Playbook
+
+---
+
+9. SITE.YML COMO ORQUESTADOR
+
+---
+
+Después de utilizar Roles, el:
+
+site.yml
+
+puede simplificarse.
+
+Su función principal pasa a ser:
+
+Seleccionar servidores
+↓
+Definir privilegios
+↓
+Aplicar Roles
+↓
+Ejecutar tareas adicionales
+
+Conceptualmente:
+
+site.yml
+│
+├── hosts
+│
+├── become
+│
+├── roles
+│   └── web
+│
+└── tasks
+└── Comprobaciones adicionales
+
+El Playbook puede seguir conteniendo tareas directas.
+
+Roles y tasks pueden convivir.
+
+---
+
+10. CONVIVENCIA ENTRE ROLES Y TASKS
+
+---
+
+Es posible utilizar:
+
+roles:
+
+y:
+
+tasks:
+
+dentro del mismo Play.
+
+Conceptualmente:
+
+Play
+│
+├── hosts
+│
+├── become
+│
+├── roles
+│   └── web
+│
+└── tasks
+├── comprobaciones
+├── register
+├── debug
+├── when
+└── otros ejercicios
+
+Esto permite reutilizar un Role y, al mismo tiempo, ejecutar tareas específicas.
+
+---
+
+11. REGLA PARA IDENTIFICAR QUÉ PERTENECE A UN ROLE
+
+---
+
+Una buena pregunta es:
+
+¿Esta tarea forma parte de la responsabilidad del Role?
+
+Ejemplo:
+
+Role web:
+
+Instalar nginx
+Configurar nginx
+Generar contenido web
+Gestionar handlers relacionados
+
+Mientras que tareas genéricas o específicas de un ejercicio pueden permanecer temporalmente en:
+
+site.yml
+
+---
+
+12. ESTRUCTURA FINAL CONCEPTUAL
+
+---
+
+Proyecto:
+
+Certi/
+│
+├── hosts
+│
+├── site.yml
+│
+├── group_vars/
+│
+├── host_vars/
+│
+└── roles/
+└── web/
+│
+├── tasks/
+│   └── main.yml
+│
+├── handlers/
+│   └── main.yml
+│
+└── templates/
+└── index.html.j2
+
+Flujo:
+
+site.yml
+↓
+Selecciona hosts
+↓
+Aplica Role web
+↓
+tasks/main.yml
+↓
+Configura nginx
+↓
+Utiliza template
+↓
+Template modificado
+↓
+notify
+↓
+handlers/main.yml
+↓
+Reinicia nginx
+
+---
+
+13. CONCEPTOS APRENDIDOS
+
+---
+
+Roles
+↓
+Agrupan una responsabilidad.
+
+tasks/main.yml
+↓
+Contiene directamente una lista de tareas.
+
+handlers/main.yml
+↓
+Contiene directamente una lista de handlers.
+
+templates/
+↓
+Contiene los templates del Role.
+
+site.yml
+↓
+Orquesta la ejecución.
+
+roles y tasks
+↓
+Pueden convivir dentro del mismo Play.
+
+Contexto
+↓
+Influye en dónde Ansible busca archivos.
+
+Refactorización
+↓
+Al mover una tarea a un Role hay que evitar dejar duplicados en el Playbook.
+
+---
+
+## CONCLUSIÓN
+
+Un Role permite transformar un Playbook grande en una estructura más modular y reutilizable.
+
+La idea principal es separar:
+
+ORQUESTACIÓN
+
+de
+
+IMPLEMENTACIÓN.
+
+site.yml
+↓
+Decide qué se ejecuta y sobre qué servidores.
+
+Role
+↓
+Contiene cómo se implementa una responsabilidad.
+
+En este bloque se ha aprendido además un error práctico importante:
+
+Mover un template al directorio de un Role no actualiza automáticamente las tareas antiguas que permanecen en site.yml.
+
+Si una tarea sigue ejecutándose desde site.yml, Ansible buscará el template utilizando el contexto del Playbook.
+
+Por tanto, al refactorizar un proyecto hacia Roles es necesario revisar:
+
+* Qué tareas se han movido.
+* Qué archivos se han movido.
+* Qué handlers se han movido.
+* Si existen tareas duplicadas.
+* Desde qué contexto se están buscando los recursos.
+
+## IDEA CLAVE DEL BLOQUE
+
+site.yml
+↓
+ORQUESTA
+
+Role
+↓
+IMPLEMENTA
+
+Y cada Role debe agrupar una responsabilidad concreta.
+
