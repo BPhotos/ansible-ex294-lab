@@ -1428,3 +1428,185 @@ Templates
 ↓
 Archivos dinámicos generados mediante variables y Jinja2
 
+
+
+
+
+
+
+
+
+============================================================
+BLOQUE 8 — ENUNCIADOS Y PREGUNTAS
+============================================================
+
+EJERCICIO 8.1
+--------------
+
+Crear un fichero:
+
+tasks/nginx_check.yml
+
+Mover a él un bloque de tareas relacionado con la
+comprobación de nginx.
+
+Desde site.yml, cargar el fichero mediante include_tasks.
+
+Comprobar que el playbook ejecuta correctamente las tareas
+contenidas en el fichero.
+
+
+EJERCICIO 8.2
+--------------
+
+Probar la diferencia entre import_tasks e include_tasks.
+
+Utilizar una variable booleana:
+
+prueba: true/false
+
+Añadir un when al mecanismo de inclusión.
+
+Comprobar qué ocurre cuando prueba es true y cuando es false.
+
+Observar especialmente la diferencia entre:
+
+import_tasks
+
+e
+
+include_tasks.
+
+
+EJERCICIO 8.3
+--------------
+
+Crear:
+
+tasks/test.yml
+
+El fichero debe contener una tarea debug que muestre:
+
+"Estamos ejecutando test.yml"
+
+Cargar el fichero desde site.yml mediante import_tasks.
+
+Añadir un tag propio.
+
+Ejecutar únicamente ese bloque utilizando:
+
+--tags test
+
+
+EJERCICIO 8.4
+--------------
+
+Modificar el ejercicio anterior para cargar test.yml
+mediante include_tasks.
+
+Ejecutar nuevamente utilizando:
+
+--tags test
+
+Comprobar el resultado.
+
+
+EJERCICIO 8.5
+--------------
+
+Crear una variable booleana:
+
+prueba: false
+
+Utilizar un when sobre include_tasks para que test.yml
+solo se incluya cuando:
+
+prueba == true
+
+Ejecutar:
+
+ansible-playbook -i hosts site.yml --tags test
+
+Comprobar que el fichero no se incluye cuando prueba es false.
+
+
+EJERCICIO 8.6
+--------------
+
+Cambiar:
+
+prueba: false
+
+por:
+
+prueba: true
+
+Ejecutar nuevamente:
+
+ansible-playbook -i hosts site.yml --tags test
+
+Comprobar que test.yml se incluye y ejecuta su tarea.
+
+
+EJERCICIO FINAL
+---------------
+
+Configurar site.yml de forma que:
+
+1. nginx_check.yml se cargue mediante import_tasks.
+
+2. test.yml se cargue mediante include_tasks.
+
+3. Cada bloque tenga su propio tag.
+
+4. Una variable booleana controle la ejecución de test.yml.
+
+5. Con la variable en false, test.yml no debe ejecutarse.
+
+6. nginx_check.yml debe ejecutarse independientemente de esa
+   variable.
+
+7. Comprobar cada bloque utilizando --tags.
+
+
+PREGUNTAS DE REPASO
+-------------------
+
+1. ¿Qué diferencia básica existe entre import_tasks e
+   include_tasks?
+
+2. ¿Qué significa que include_tasks sea una inclusión dinámica?
+
+3. ¿Qué significa que import_tasks sea una inclusión estática?
+
+4. ¿Qué ocurre con un include_tasks cuando su when es false?
+
+5. ¿Qué ocurre con las tareas importadas mediante import_tasks
+   cuando su when es false?
+
+6. ¿Para qué sirven los tags en Ansible?
+
+7. ¿Cómo ejecutar únicamente las tareas asociadas al tag test?
+
+8. ¿Qué diferencia hay entre true/false y "true"/"false"?
+
+9. ¿Dónde se colocan normalmente los ficheros de tareas que
+   queremos separar de site.yml?
+
+10. ¿Un fichero como tasks/test.yml debe llevar "tasks:" en
+    la parte superior?
+
+11. ¿Por qué puede aparecer "included:" en la salida de
+    Ansible?
+
+12. ¿Qué diferencia observamos en la salida entre
+    import_tasks e include_tasks?
+
+13. ¿Puede un playbook utilizar roles y además tasks/
+    import_tasks/include_tasks?
+
+14. ¿Qué ventaja tiene separar bloques grandes de tareas en
+    diferentes ficheros?
+
+15. ¿Qué problema encontramos al utilizar --tags con
+    include_tasks si las tareas internas no tienen el tag?

@@ -2799,3 +2799,364 @@ IMPLEMENTA
 
 Y cada Role debe agrupar una responsabilidad concreta.
 
+
+CUESTIONARIO DE REPASO.
+¿Qué finalidad tiene principalmente group_vars en un inventario de Ansible?
+
+group_vars está diseñado para variables aplicables a los hosts pertenecientes a un grupo.
+
+Tienes una variable web_environment cuyo valor es producción. ¿Qué expresión when comprueba exactamente ese valor?
+
+La comparación de igualdad comprueba que el valor de web_environment sea exactamente producción.
+
+Una tarea ejecuta un comando y contiene register: nginx_check. ¿Qué consigue register?
+
+register almacena el resultado de ejecución de la tarea para poder utilizar sus datos posteriormente.
+
+Si una tarea contiene loop: [curl, vim, tree] y utiliza {{ item }}, ¿qué representa item en cada iteración?
+
+item contiene el elemento que se está procesando en la iteración actual.
+
+En un loop de Ansible tienes elementos con esta estructura: ruta y contenido. ¿Qué expresión permite obtener el valor de contenido del elemento actual?
+
+La notación de atributo permite acceder al campo contenido del elemento actual almacenado en item.
+
+KO Has movido index.html.j2 a roles/web/templates/ y la tarea de template está dentro de roles/web/tasks/main.yml. ¿Qué valor debe utilizar src para localizar ese template dentro del role?
+
+Dentro del contexto de un role, el módulo template busca el archivo en el directorio templates del propio role.
+
+¿Cuál es la función de un handler notificado por una tarea que modifica un template?
+
+Un handler notificado se ejecuta cuando la tarea notificadora ha producido un cambio, normalmente al final del play.
+
+KO En roles/web/tasks/main.yml, ¿cuál es la estructura correcta del archivo principal de tareas?
+
+El main.yml de tasks de un role contiene directamente la lista de tareas.
+
+Después de crear el role web, ¿qué relación es correcta entre site.yml y el role?
+
+Un play puede utilizar roles y también definir tareas adicionales dentro de ese mismo play.
+
+Durante el Bloque 7 apareció un error indicando que Ansible no encontraba index.html.j2 en el controller. El template ya estaba en roles/web/templates/, pero quedaba una tarea de template duplicada en site.yml. ¿Cuál era la causa principal?
+
+La tarea que permanecía en site.yml utilizaba el contexto del playbook, por lo que no resolvía automáticamente el template situado dentro del role.
+
+Un host pertenece al grupo web y tiene una variable definida en group_vars/web.yml. ¿Para qué situación es especialmente apropiado ese mecanismo?
+
+group_vars permite definir valores compartidos por los hosts que pertenecen al grupo correspondiente.
+
+Un play contiene una tarea con when: web_environment == "producción". Si web_environment vale Development, ¿qué ocurre con esa tarea?
+
+Una condición when falsa hace que Ansible omita la tarea y la marque como skipped.
+
+Una tarea ejecuta nginx -v y utiliza register: comprobacion. ¿Qué tipo de información puede resultar útil posteriormente de ese registro?
+
+El resultado registrado de una tarea de comando contiene información como el código de retorno y las salidas del proceso.
+
+Quieres crear tres archivos y que cada uno tenga una ruta y un contenido diferentes. ¿Qué estructura de loop resulta más adecuada?
+
+Una lista de objetos permite asociar directamente cada ruta con su contenido y acceder a ambos mediante item.
+
+Una tarea de Ansible instala varios paquetes mediante un loop. ¿Qué ventaja principal aporta el loop frente a escribir una tarea idéntica para cada paquete?
+
+El loop permite reutilizar la misma tarea y aplicar su lógica a cada elemento de la colección.
+
+Un template contiene {{ web_message }}. ¿Qué mecanismo permite que el mismo template genere contenido diferente en lab1 y lab2 sin duplicar el archivo Jinja2?
+
+El template puede permanecer idéntico mientras la variable utilizada recibe valores diferentes según el ámbito de variables.
+
+Una tarea modifica un template y tiene notify: reinicia nginx. Si el template ya coincide exactamente con el contenido existente, ¿qué comportamiento esperas del handler?
+
+La notificación de un handler depende de que la tarea notificadora haya producido un cambio.
+
+En un role llamado web, quieres que el playbook ejecute sus tareas principales. ¿Qué archivo del role contiene normalmente esas tareas?
+
+tasks/main.yml es el punto de entrada habitual para las tareas principales de un role.
+
+
+iKO Un role web contiene un handler llamado reinicia nginx. Una tarea del propio role utiliza notify: reinicia nginx. ¿Qué requisito es importante para que la notificación funcione correctamente?
+
+La notificación debe corresponder a un handler disponible con el nombre indicado.
+
+Tienes un play con roles: - web y además una sección tasks:. ¿Cuál es la razón arquitectónica más adecuada para mantener algunas tareas directamente en site.yml?
+
+El playbook puede orquestar roles y conservar tareas concretas del escenario que no necesitan formar parte del role reutilizable.
+
+
+
+
+
+
+
+============================================================
+BLOQUE 8 — ORGANIZACIÓN E INCLUSIÓN DE TAREAS
+============================================================
+
+OBJETIVO
+--------
+Aprender a separar bloques de tareas en archivos independientes
+y cargarlos desde site.yml mediante import_tasks e include_tasks.
+
+------------------------------------------------------------
+1. SEPARAR TAREAS EN FICHEROS
+------------------------------------------------------------
+
+Podemos sacar un conjunto de tareas de site.yml y guardarlo
+en un fichero independiente dentro de:
+
+tasks/
+
+Ejemplo:
+
+site.yml
+tasks/
+├── nginx_check.yml
+└── test.yml
+
+El fichero de tareas contiene directamente las tareas.
+
+IMPORTANTE:
+Los ficheros incluidos mediante import_tasks/include_tasks
+NO llevan "tasks:" en la parte superior.
+
+------------------------------------------------------------
+2. include_tasks
+------------------------------------------------------------
+
+include_tasks realiza una inclusión DINÁMICA.
+
+Ejemplo:
+
+- name: test
+  ansible.builtin.include_tasks: tasks/test.yml
+
+Ansible decide durante la ejecución si incluye el fichero.
+
+Con un when:
+
+- name: test
+  ansible.builtin.include_tasks: tasks/test.yml
+  when: prueba == true
+
+Si:
+
+prueba: true
+
+→ incluye el fichero y ejecuta sus tareas.
+
+Si:
+
+prueba: false
+
+→ no incluye el fichero y las tareas que contiene no aparecen
+como tareas ejecutadas.
+
+En la salida podemos ver:
+
+TASK [test]
+included: .../tasks/test.yml
+
+------------------------------------------------------------
+3. import_tasks
+------------------------------------------------------------
+
+import_tasks realiza una inclusión ESTÁTICA.
+
+Ejemplo:
+
+- name: nginx_check1
+  ansible.builtin.import_tasks: tasks/nginx_check.yml
+
+Ansible incorpora las tareas del fichero al playbook.
+
+Con:
+
+when: prueba == true
+
+el "when" se aplica a las tareas importadas.
+
+Si:
+
+prueba: false
+
+las tareas del fichero aparecen como:
+
+TASK [Comprobar si existe nginx]
+skipping
+
+TASK [Mostrar el resultado...]
+skipping
+
+etc.
+
+Si:
+
+prueba: true
+
+las tareas se ejecutan normalmente.
+
+------------------------------------------------------------
+4. DIFERENCIA PRINCIPAL
+------------------------------------------------------------
+
+include_tasks:
+
+"¿Incluyo este fichero?"
+
+NO  → no se incluyen sus tareas.
+SÍ  → se incluyen y ejecutan.
+
+import_tasks:
+
+"Estas tareas forman parte del playbook."
+
+Después el when determina si cada tarea importada se ejecuta
+o se salta.
+
+Resumen:
+
+include_tasks = inclusión dinámica
+import_tasks  = inclusión estática
+
+------------------------------------------------------------
+5. TAGS
+------------------------------------------------------------
+
+Los tags permiten ejecutar solamente determinadas partes
+del playbook.
+
+Ejemplo:
+
+- name: test
+  ansible.builtin.include_tasks: tasks/test.yml
+  tags: test
+
+Se puede ejecutar con:
+
+ansible-playbook -i hosts site.yml --tags test
+
+Otro ejemplo:
+
+- name: nginx_check1
+  ansible.builtin.import_tasks: tasks/nginx_check.yml
+  tags: nginx_check
+
+Se puede ejecutar con:
+
+ansible-playbook -i hosts site.yml --tags nginx_check
+
+------------------------------------------------------------
+6. TAGS + include_tasks
+------------------------------------------------------------
+
+IMPORTANTE:
+
+Poner un tag al include_tasks no significa necesariamente
+que las tareas que están dentro del fichero incluido tengan
+ese mismo tag.
+
+En nuestra prueba:
+
+ansible-playbook -i hosts site.yml --tags test
+
+mostró:
+
+TASK [test]
+included: .../tasks/test.yml
+
+pero no ejecutó el debug que estaba dentro de test.yml.
+
+Al ejecutar:
+
+ansible-playbook -i hosts site.yml
+
+sin filtrar por tags, sí apareció:
+
+TASK [test]
+included: .../tasks/test.yml
+
+TASK [test]
+ok: [lab1]
+ok: [lab2]
+
+------------------------------------------------------------
+7. VARIABLES BOOLEANAS
+------------------------------------------------------------
+
+Una variable booleana puede utilizarse para controlar
+si se ejecuta un bloque.
+
+Ejemplo:
+
+vars:
+  prueba: false
+
+Condición:
+
+when: prueba == true
+
+IMPORTANTE:
+
+false y true son valores booleanos.
+
+No debemos confundirlos con texto:
+
+"false"
+"true"
+
+Por ejemplo:
+
+prueba: false
+
+se compara como:
+
+when: prueba == true
+
+------------------------------------------------------------
+8. RESULTADO DEL EJERCICIO FINAL
+------------------------------------------------------------
+
+Configuración utilizada:
+
+prueba: false
+
+nginx_check:
+    import_tasks
+    tag: nginx_check
+    sin depender de prueba
+
+test:
+    include_tasks
+    tag: test
+    when: prueba == true
+
+Comprobación:
+
+--tags test
+→ test se salta cuando prueba es false.
+
+--tags nginx_check
+→ nginx_check se ejecuta independientemente de prueba.
+
+------------------------------------------------------------
+9. IDEA PARA RECORDAR
+------------------------------------------------------------
+
+include_tasks:
+
+"¿Meto este fichero ahora?"
+
+import_tasks:
+
+"Estas tareas forman parte del playbook."
+
+tags:
+
+"Ejecuta solamente este bloque."
+
+when:
+
+"¿Se cumple la condición para ejecutar esto?"
+
+
+

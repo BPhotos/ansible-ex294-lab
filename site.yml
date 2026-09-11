@@ -4,8 +4,20 @@
   become: true
   roles:
     - web 
+  vars:
+    prueba: false 
 
   tasks:
+  - name: nginx_check1
+    ansible.builtin.import_tasks: tasks/nginx_check.yml
+    tags: nginx_check
+    #wmsonhen: prueba == true
+
+  - name: test
+    ansible.builtin.include_tasks: tasks/test.yml
+    tags: test
+    when: prueba == true
+
   - name: Crea txt
     ansible.builtin.copy:
       content: "Este servidor es de PRODUCCIÓN"
@@ -18,36 +30,7 @@
       dest: /var/www/html/development.txt
     when: web_environment != "producción"
  
-  - name: Comprobar si existe nginx
-    ansible.builtin.command:
-      cmd: ls -lrt /usr/sbin/nginx
-    register: nginx_check
 
-  - name: Mostrar el resultado de que existe nginx 
-    ansible.builtin.debug:
-      msg: "{{ nginx_check.rc }}"
-  
-  - name: Condicion basada en el resultado
-    ansible.builtin.debug:
-      msg: "nginx esta instalado en este servidor"
-    when: nginx_check.rc == 0
-
-  - name: Condicion inversa	
-    ansible.builtin.debug:
-      msg: "nginx no esta instalado en este servidor"
-    when: nginx_check.rc != 0
-
-  - name: Comprobar versión de nginx en producción
-    ansible.builtin.command:
-      cmd: nginx -v
-    register: comprobacion
-    when: web_environment == "producción"
-
-  - name: Mostrar comprobación de nginx en producción
-    ansible.builtin.debug:
-      var: comprobacion
-    when: web_environment == "producción"
- 
   - name: Instalar varios paquetes
     ansible.builtin.apt:
       name: "{{ item }}"
