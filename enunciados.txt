@@ -1610,3 +1610,55 @@ PREGUNTAS DE REPASO
 
 15. ¿Qué problema encontramos al utilizar --tags con
     include_tasks si las tareas internas no tienen el tag?
+
+
+
+bloque 9
+LOQUE 9 — Usuarios y grupos
+Ejercicio 9.1 — Crear usuario
+Crear ansibleuser
+Shell /bin/bash
+Comentario usuario de pruebas
+Verificar que existe mediante register + debug.
+Ejercicio 9.2 — Crear grupo
+Crear el grupo ansibladmins.
+Verificar que el grupo existe.
+Ejercicio 9.3 — Asociar usuario al grupo
+Añadir ansibleuser al grupo ansibladmins.
+Comprobar que la pertenencia es correcta.
+Comprobar la idempotencia.
+Ejercicio 9.4 — Crear varios usuarios con loop
+Crear:
+sysuser1
+sysuser2
+Una única tarea utilizando loop.
+Shell /bin/bash.
+Añadirlos a ansibladmins.
+Pendiente ahora: comprobar que ambos usuarios están realmente en el grupo.
+Ejercicio 9.5 — Ejercicio final del bloque
+Combinar usuarios, grupo, variables/condicionales y verificación.
+Será el ejercicio de cierre para comprobar que lo aprendido en el bloque queda integrado.
+
+Estado actual: 9.1 ✅ · 9.2 ✅ · 9.3 ✅ · 9.4 🟡 · 9.5 ⏳
+
+Así que esta noche retomamos exactamente en 9.4, comprobación de sysuser1 y sysuser2 en ansibladmins.
+
+9.5 — Ejercicio final
+
+Partiendo de los usuarios y grupo que ya has creado:
+
+Crear mediante variables una lista de usuarios:
+appuser1
+appuser2
+appuser3
+Crear todos los usuarios mediante un único loop.
+Todos deben:
+Tener /bin/bash.
+Pertenecer al grupo ansibladmins.
+Mantener cualquier otro grupo secundario que ya tengan.
+Añadir una condición para que estos usuarios solo se creen en servidores cuyo web_environment sea producción.
+Finalmente, verificar el resultado mostrando los usuarios creados y su pertenencia al grupo.
+
+Objetivo del 9.5: que seas capaz de combinar vars + loop + when + user/group + verificación, sin que yo te dé la solución.
+
+Y aquí hacemos como siempre: tú escribes el YAML y yo solo te digo si vas bien o dónde está el fallo.

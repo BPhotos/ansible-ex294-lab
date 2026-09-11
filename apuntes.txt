@@ -3159,4 +3159,271 @@ when:
 "¿Se cumple la condición para ejecutar esto?"
 
 
+============================================================
+EX09 - USUARIOS Y GRUPOS
+============================================================
 
+OBJETIVO
+--------
+Gestionar usuarios y grupos con Ansible utilizando:
+
+- ansible.builtin.user
+- ansible.builtin.group
+- variables
+- loops
+- when
+- register
+- debug
+- tags
+- append
+- idempotencia
+- comprobaciones de resultados
+
+
+9.1 - CREAR USUARIO
+-------------------
+
+Crear un usuario mediante:
+
+ansible.builtin.user
+
+Ejemplo utilizado:
+
+- name: Crear usuario ansibleuser
+  ansible.builtin.user:
+    name: ansibleuser
+    comment: usuario de pruebas
+    shell: /bin/bash
+
+Después se utilizó register + debug para comprobar que el
+usuario existía.
+
+Aprendizaje:
+- user permite gestionar usuarios de forma declarativa.
+- shell permite definir la shell.
+- comment permite establecer el comentario/GECOS.
+- register permite almacenar el resultado de una tarea.
+- stdout contiene la salida de comandos ejecutados mediante shell.
+
+
+9.2 - CREAR GRUPO
+-----------------
+
+Crear el grupo:
+
+ansibladmins
+
+mediante:
+
+ansible.builtin.group
+
+Ejemplo:
+
+- name: Crear grupo ansibleadmins
+  ansible.builtin.group:
+    name: ansibladmins
+    state: present
+
+IMPORTANTE:
+El nombre utilizado finalmente en los ejercicios fue
+"ansibladmins" (con una sola "e").
+
+
+9.3 - AÑADIR USUARIO A GRUPO
+----------------------------
+
+Para añadir ansibleuser al grupo se utilizó:
+
+ansible.builtin.user:
+  name: ansibleuser
+  groups: ansibladmins
+  append: yes
+
+IMPORTANTE:
+"groups" indica los grupos secundarios del usuario.
+
+"append: yes" hace que se añada el grupo sin eliminar
+otros grupos secundarios que el usuario ya pudiera tener.
+
+La tarea fue idempotente: al volver a ejecutarla apareció
+"ok" en lugar de "changed".
+
+
+9.4 - CREAR VARIOS USUARIOS CON LOOP
+------------------------------------
+
+Se crearon:
+
+- sysuser1
+- sysuser2
+
+mediante una única tarea y un loop:
+
+loop:
+  - sysuser1
+  - sysuser2
+
+Los usuarios se crearon con:
+
+- shell: /bin/bash
+- groups: ansibladmins
+- append: yes
+
+IMPORTANTE - ERROR REAL DURANTE EL EJERCICIO
+--------------------------------------------
+
+Durante este ejercicio apareció un problema al añadir el
+grupo debido a un typo:
+
+Se utilizó "group" en lugar de "groups".
+
+Esto provocó un warning.
+
+El error se detectó y se corrigió simplemente corrigiendo
+el nombre del parámetro:
+
+group  ->  groups
+
+La corrección la realizó el propio alumno, sin necesitar
+la solución completa.
+
+Esto sirvió para comprobar la importancia de consultar la
+documentación del módulo y distinguir correctamente sus
+parámetros.
+
+
+9.5 - EJERCICIO FINAL
+---------------------
+
+Se combinaron los conceptos aprendidos durante el bloque:
+
+- variables
+- loop
+- when
+- ansible.builtin.user
+- groups
+- append
+- tags
+- comprobación mediante register/debug
+
+Se definió una variable con los usuarios:
+
+web_users
+
+y se utilizó:
+
+loop: "{{ web_users }}"
+
+Además se aplicó:
+
+when: web_environment == "producción"
+
+Resultado:
+
+lab1 (producción):
+    appuser1
+    appuser2
+    appuser3
+
+lab2 (desarrollo):
+    no se crean los usuarios
+
+Esto permitió comprobar que el loop se ejecuta únicamente
+cuando se cumple la condición.
+
+
+VERIFICACIONES UTILIZADAS
+-------------------------
+
+Durante el bloque se utilizaron comandos shell para comprobar
+usuarios y grupos.
+
+Ejemplo:
+
+grep ansibleuser /etc/passwd
+
+y:
+
+cat /etc/group | grep ansibladmins
+
+Después se utilizó:
+
+register
+
+para guardar el resultado y:
+
+debug:
+  msg: "{{ variable.stdout }}"
+
+para mostrarlo.
+
+
+MEJORA PENDIENTE - COMPROBACIONES ANSIBLE-NATIVE
+-------------------------------------------------
+
+Durante el bloque se repitieron varias tareas destinadas a
+consultar /etc/group mediante shell.
+
+Ejemplo:
+
+- name: Comprobar que grupo ansibleadmins existe
+  ansible.builtin.shell:
+    cmd: cat /etc/group | grep ansibladmins
+  register: group_check
+
+Esto funciona, pero no es la forma más "Ansible-friendly"
+de comprobar el estado de usuarios y grupos.
+
+Además, la misma comprobación se ha repetido varias veces
+en distintas partes del playbook.
+
+PENDIENTE PARA UNA REVISIÓN POSTERIOR:
+
+1. Evitar repetir las mismas tasks de comprobación.
+2. Centralizar las comprobaciones mediante include_tasks
+   cuando tenga sentido.
+3. Investigar módulos/facts de Ansible que permitan comprobar
+   usuarios y grupos sin recurrir a shell/grep.
+4. Comparar la solución actual basada en shell con una
+   solución más declarativa y Ansible-native.
+
+NOTA:
+No se modifica ahora porque el objetivo del bloque era
+aprender user/group, loops, variables, condiciones,
+register/debug e idempotencia.
+
+
+CONCEPTOS CLAVE DEL BLOQUE
+--------------------------
+
+user
+    Gestiona usuarios.
+
+group
+    Gestiona grupos.
+
+groups
+    Define grupos secundarios del usuario.
+
+append
+    Añade grupos secundarios sin eliminar los existentes.
+
+loop
+    Permite repetir una tarea para varios elementos.
+
+when
+    Permite ejecutar una tarea únicamente cuando se cumple
+    una condición.
+
+register
+    Guarda el resultado de una tarea en una variable.
+
+debug
+    Permite mostrar información y resultados.
+
+tags
+    Permiten ejecutar selectivamente determinadas tareas.
+
+Idempotencia
+    Ejecutar repetidamente el playbook no debe producir
+    cambios si el estado deseado ya está conseguido.

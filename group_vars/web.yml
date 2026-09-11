@@ -4,3 +4,7 @@ web_packages:
   - curl
   - vim
   - tree
+web_users:
+  - appuser1
+  - appuser2
+  - appuser3

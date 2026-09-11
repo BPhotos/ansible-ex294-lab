@@ -11,7 +11,7 @@
   - name: nginx_check1
     ansible.builtin.import_tasks: tasks/nginx_check.yml
     tags: nginx_check
-    #wmsonhen: prueba == true
+    #when: prueba == true
 
   - name: test
     ansible.builtin.include_tasks: tasks/test.yml
@@ -93,3 +93,89 @@
   - name: Mostrar comprobante
     ansible.builtin.debug:
       msg: "{{ comprobante.stdout }}"
+
+  - name: Crear usuario ansibleuser
+    ansible.builtin.user:
+      name: ansibleuser
+      comment: usuario de pruebas
+      shell: /bin/bash
+    tags: user
+
+  - name: Comprobar que usuario ansibleuser existe
+    ansible.builtin.shell:
+      cmd: grep ansibleuser /etc/passwd
+    register: user_check
+    tags: user
+
+  - name: Comprobazzione usuario
+    ansible.builtin.debug:
+      msg: "{{ user_check.stdout }}"
+    tags: user
+
+  - name: Crear grupo ansibleadmins
+    ansible.builtin.group:
+      name: ansibladmins
+      state: present
+    tags: user
+
+  - name: añadir ansible user a ansibladmins
+    ansible.builtin.user:
+      name: ansibleuser
+      groups: ansibladmins
+      append: yes
+    tags: user
+
+  - name: Comprobar que grupo ansibleadmins existe
+    ansible.builtin.shell:
+      cmd: cat /etc/group |grep ansibladmins 
+    register: group_check
+    tags: user
+  
+  - name: Comprobazzione group
+    ansible.builtin.debug:
+      msg: "{{ group_check.stdout }}"
+    tags: user
+
+  - name: Crear usuario con loop
+    ansible.builtin.user:
+      name: "{{ item }}"
+      shell: /bin/bash
+      groups: ansibladmins
+      append: yes
+    loop:
+      - sysuser1
+      - sysuser2
+    tags: user
+
+  - name: Comprobar que grupo ansibleadmins existe
+    ansible.builtin.shell:
+      cmd: cat /etc/group |grep ansibladmins 
+    register: group_check
+    tags: user
+  
+  - name: Comprobazzione group
+    ansible.builtin.debug:
+      msg: "{{ group_check.stdout }}"
+    tags: user
+
+  - name: Crear users con la combi completa
+    ansible.builtin.user:
+      name: "{{ item }}"
+      shell: /bin/bash
+      groups: ansibladmins
+      append: yes
+    loop: "{{ web_users }}"
+    when: web_environment == "producción"
+    tags: user
+
+  - name: Comprobar que grupo ansibleadmins existe
+    ansible.builtin.shell:
+      cmd: cat /etc/group |grep ansibladmins 
+    register: group_check
+    tags: user
+  
+  - name: Comprobazzione group
+    ansible.builtin.debug:
+      msg: "{{ group_check.stdout }}"
+    tags: user
+
