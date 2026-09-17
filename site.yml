@@ -204,4 +204,5 @@
       owner: root
       group: root
       mode: 0640
+    notify: Version 
     tags: config 

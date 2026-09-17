@@ -1722,3 +1722,65 @@ ENUNCIADO:
 
 7. Comprobar idempotencia ejecutando el playbook dos veces.
 
+
+
+
+Aquí vamos a coger lo que acabas de hacer en EX10 y subir un nivel: una modificación de configuración debe provocar una acción, pero solo si realmente ha habido cambio.
+
+Enunciado
+
+Partiendo de bertoapp.conf del EX10:
+
+Mantén:
+/opt/bertoapp/config/bertoapp.conf
+El fichero seguirá generándose mediante template.
+Añade al template una nueva variable:
+APP_VERSION={{ app_version }}
+Define app_version como variable del playbook con:
+app_version: "1.0"
+Cuando el fichero de configuración cambie, debe ejecutarse un handler.
+
+El handler debe ejecutar:
+
+echo "BertoApp configuration changed"
+
+⚠️ Aquí sí puedes utilizar ansible.builtin.command para el ejercicio, porque queremos practicar el mecanismo notify → handler.
+
+La task del template debe notificar al handler:
+notify
+El handler debe ejecutarse solo cuando el template produzca un cambio.
+Añade el tag:
+config
+Pruebas que debes hacer
+
+Primero:
+
+ansible-playbook -i hosts site.yml --tags config
+
+Debe cambiar el fichero y ejecutar el handler.
+
+Después, sin tocar nada:
+
+ansible-playbook -i hosts site.yml --tags config
+
+Debe aparecer:
+
+changed=0
+
+y el handler NO debe ejecutarse.
+
+Finalmente cambia:
+
+app_version: "1.0"
+
+por:
+
+app_version: "1.1"
+
+y vuelve a ejecutar.
+
+Esta vez debe volver a producirse:
+
+changed
+
+y ejecutarse el handler.

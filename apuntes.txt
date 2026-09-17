@@ -3633,3 +3633,222 @@ VALORACIÓN
 - permisos
 - propietario/grupo
 - idempotencia
+
+
+
+
+============================================================
+EX11 - HANDLERS Y CAMBIOS DE CONFIGURACIÓN
+============================================================
+
+OBJETIVO:
+
+Conseguir que una modificación de un fichero de configuración
+provoque una acción mediante un handler, pero únicamente cuando
+el fichero haya cambiado.
+
+
+------------------------------------------------------------
+ENUNCIADO
+------------------------------------------------------------
+
+Partiendo del EX10:
+
+1. Mantener:
+
+   /opt/bertoapp/config/bertoapp.conf
+
+
+2. Añadir al template:
+
+   APP_VERSION={{ app_version }}
+
+
+3. Definir:
+
+   app_version: "1.0"
+
+
+4. La modificación del fichero debe notificar un handler.
+
+
+5. El handler debe ejecutar una acción cuando cambie la
+   configuración.
+
+
+6. Añadir tag:
+
+   config
+
+
+7. Comprobar el comportamiento ejecutando el playbook varias veces.
+
+
+------------------------------------------------------------
+CONCEPTOS
+------------------------------------------------------------
+
+El flujo fundamental es:
+
+   template
+       |
+       | changed
+       v
+     notify
+       |
+       v
+    handler
+
+
+Si el template NO cambia:
+
+   template
+       |
+       | ok
+       v
+   NO handler
+
+
+------------------------------------------------------------
+TASK UTILIZADA
+------------------------------------------------------------
+
+    - name: copiar contenido.
+      ansible.builtin.template:
+        src: roles/web/templates/app.j2
+        dest: /opt/bertoapp/config/bertoapp.conf
+        owner: root
+        group: root
+        mode: 0640
+      notify: Version
+      tags: config
+
+
+------------------------------------------------------------
+HANDLER
+------------------------------------------------------------
+
+    - name: Version
+      ansible.builtin.debug:
+        msg: "BertoApp configuration changed"
+      tags: config
+
+
+El handler está dentro de la role web.
+
+Por eso Ansible muestra:
+
+    RUNNING HANDLER [web : Version]
+
+
+------------------------------------------------------------
+PRUEBA 1
+------------------------------------------------------------
+
+Comando:
+
+    ansible-playbook -i hosts site.yml -t config
+
+
+Resultado:
+
+    copiar contenido. -> changed
+
+    RUNNING HANDLER [web : Version]
+
+    "msg": "BertoApp configuration changed"
+
+
+Conclusión:
+
+El template cambió y se ejecutó el handler mediante notify.
+
+
+------------------------------------------------------------
+PRUEBA 2 - IDEMPOTENCIA
+------------------------------------------------------------
+
+Se ejecutó de nuevo:
+
+    ansible-playbook -i hosts site.yml -t config
+
+
+Resultado:
+
+    copiar contenido. -> ok
+
+No apareció:
+
+    RUNNING HANDLER
+
+
+Conclusión:
+
+Al no producirse ningún cambio, el handler no se ejecuta.
+
+
+------------------------------------------------------------
+PRUEBA DEL CONCEPTO
+------------------------------------------------------------
+
+Primera ejecución:
+
+    template -> changed -> notify -> handler
+
+
+Segunda ejecución:
+
+    template -> ok -> no handler
+
+
+Esto demuestra la relación entre:
+
+    changed
+    notify
+    handler
+    idempotencia
+
+
+------------------------------------------------------------
+NOTAS / FALLOS
+------------------------------------------------------------
+
+- El nombre del handler utilizado fue:
+
+    Version
+
+  Aunque funciona correctamente, un nombre como:
+
+    config_changed
+
+  sería más descriptivo para indicar qué acción representa.
+
+- El handler utiliza ansible.builtin.debug para demostrar que
+  ha sido ejecutado.
+
+- El handler está definido dentro de la role web.
+
+- El template utilizado está en:
+
+    roles/web/templates/app.j2
+
+- Como la task está directamente en site.yml y no dentro de la
+  role, se utilizó:
+
+    src: roles/web/templates/app.j2
+
+
+------------------------------------------------------------
+RESULTADO
+------------------------------------------------------------
+
+EX11 COMPLETADO.
+
+Se ha comprobado:
+
+    template
+    notify
+    handler
+    tags
+    idempotencia
+    ejecución condicional del handler según changed

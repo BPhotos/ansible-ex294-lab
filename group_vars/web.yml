@@ -8,3 +8,4 @@ web_users:
   - appuser1
   - appuser2
   - appuser3
+app_version: "1.0"

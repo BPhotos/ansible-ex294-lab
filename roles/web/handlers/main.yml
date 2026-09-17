@@ -3,3 +3,8 @@
   ansible.builtin.service:
     name: nginx
     state: restarted
+
+- name: Version
+  ansible.builtin.debug:
+    msg: "BertoApp configuration changed"
+  tags: config
