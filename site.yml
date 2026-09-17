@@ -179,3 +179,29 @@
       msg: "{{ group_check.stdout }}"
     tags: user
 
+  - name: crear directorio
+    ansible.builtin.file:
+      path: /opt/bertoapp/
+      state: directory
+      owner: root
+      group: root
+      mode: 0755
+    tags: config
+
+  - name: crear directorio
+    ansible.builtin.file:
+      path: /opt/bertoapp/config
+      state: directory
+      owner: root
+      group: root
+      mode: 0750
+    tags: config
+
+  - name: copiar contenido.
+    ansible.builtin.template:
+      src: roles/web/templates/app.j2
+      dest: /opt/bertoapp/config/bertoapp.conf
+      owner: root
+      group: root
+      mode: 0640
+    tags: config 

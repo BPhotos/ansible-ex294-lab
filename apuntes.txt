@@ -3427,3 +3427,209 @@ tags
 Idempotencia
     Ejecutar repetidamente el playbook no debe producir
     cambios si el estado deseado ya está conseguido.
+
+
+
+
+
+============================================================
+EX10 - PERMISOS, FICHEROS Y CONFIGURACIÓN
+============================================================
+
+OBJETIVO:
+
+Gestionar mediante Ansible una estructura de configuración para
+una aplicación ficticia llamada bertoapp.
+
+
+ENUNCIADO:
+
+1. Crear el directorio:
+
+   /opt/bertoapp
+
+   owner: root
+   group: root
+   mode: 0755
+
+
+2. Crear:
+
+   /opt/bertoapp/config
+
+   owner: root
+   group: root
+   mode: 0750
+
+
+3. Crear:
+
+   /opt/bertoapp/config/bertoapp.conf
+
+   mediante ansible.builtin.template
+
+   Contenido:
+
+   APP_NAME=bertoapp
+   APP_ENV={{ web_environment }}
+   APP_MESSAGE={{ web_message }}
+
+
+4. El fichero debe tener:
+
+   owner: root
+   group: root
+   mode: 0640
+
+
+5. No utilizar shell ni command.
+
+
+6. Añadir el tag:
+
+   config
+
+
+7. Comprobar idempotencia ejecutando el playbook dos veces.
+
+
+------------------------------------------------------------
+FALLO 1 - COPY + LOOP
+------------------------------------------------------------
+
+Primer intento:
+
+   ansible.builtin.copy:
+     content: "{{ item.contenido }}"
+     dest: /opt/bertoapp/bertoapp.conf
+   loop:
+     - contenido: "APP_NAME=bertoapp"
+     - contenido: "APP_ENV={{ web_environment }}"
+     - contenido: "APP_MESSAGE={{ web_message }}"
+
+Problema:
+
+Cada iteración escribía sobre el mismo fichero.
+
+Resultado:
+
+   iteración 1 -> APP_NAME
+   iteración 2 -> sobrescribe APP_NAME
+   iteración 3 -> sobrescribe APP_ENV
+
+No se obtenían las tres líneas.
+
+Aprendizaje:
+
+Para generar un fichero completo con variables Jinja2,
+es mejor utilizar template.
+
+
+------------------------------------------------------------
+FALLO 2 - RUTA DEL FICHERO
+------------------------------------------------------------
+
+Primer intento:
+
+   /opt/bertoapp/bertoapp.conf
+
+La ruta solicitada era:
+
+   /opt/bertoapp/config/bertoapp.conf
+
+Se corrigió creando primero:
+
+   /opt/bertoapp/config
+
+
+------------------------------------------------------------
+FALLO 3 - TEMPLATE NO ENCONTRADO
+------------------------------------------------------------
+
+Error:
+
+   Could not find or access 'app.j2'
+
+El template existente estaba en:
+
+   roles/web/templates/app.j2
+
+La task estaba directamente en site.yml y no dentro de la role.
+
+Por tanto, Ansible buscaba inicialmente:
+
+   /home/bertophoto/ansible/Certi/templates/app.j2
+
+y no encontraba el fichero.
+
+Se solucionó utilizando:
+
+   src: roles/web/templates/app.j2
+
+Aprendizaje:
+
+Los templates de una role se buscan automáticamente dentro
+de:
+
+   roles/<role>/templates/
+
+Pero una task ejecutada directamente desde site.yml no tiene
+ese mismo contexto.
+
+
+------------------------------------------------------------
+RESULTADO FINAL
+------------------------------------------------------------
+
+Tasks:
+
+   ansible.builtin.file
+   ansible.builtin.file
+   ansible.builtin.template
+
+Configuración final:
+
+   /opt/bertoapp/
+   └── config/
+       └── bertoapp.conf
+
+Permisos:
+
+   /opt/bertoapp          0755 root:root
+   /opt/bertoapp/config   0750 root:root
+   bertoapp.conf          0640 root:root
+
+
+------------------------------------------------------------
+IDEMPOTENCIA
+------------------------------------------------------------
+
+Primera ejecución:
+
+   lab1 -> changed=1
+   lab2 -> changed=1
+
+Segunda ejecución:
+
+   lab1 -> changed=0
+   lab2 -> changed=0
+
+Conclusión:
+
+El playbook es idempotente.
+
+
+------------------------------------------------------------
+VALORACIÓN
+------------------------------------------------------------
+
+8,5/10 antes de las correcciones.
+
+10/10 después de corregir:
+
+- estructura de directorios
+- ruta del fichero
+- uso de template
+- permisos
+- propietario/grupo
+- idempotencia

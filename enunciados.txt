@@ -1662,3 +1662,63 @@ Finalmente, verificar el resultado mostrando los usuarios creados y su pertenenc
 Objetivo del 9.5: que seas capaz de combinar vars + loop + when + user/group + verificación, sin que yo te dé la solución.
 
 Y aquí hacemos como siempre: tú escribes el YAML y yo solo te digo si vas bien o dónde está el fallo.
+
+
+
+
+OBJETIVO:
+
+Gestionar mediante Ansible una estructura de configuración para
+una aplicación ficticia llamada bertoapp.
+
+
+ENUNCIADO:
+
+1. Crear el directorio:
+
+   /opt/bertoapp
+
+   owner: root
+   group: root
+   mode: 0755
+
+
+2. Crear:
+
+   /opt/bertoapp/config
+
+   owner: root
+   group: root
+   mode: 0750
+
+
+3. Crear:
+
+   /opt/bertoapp/config/bertoapp.conf
+
+   mediante ansible.builtin.template
+
+   Contenido:
+
+   APP_NAME=bertoapp
+   APP_ENV={{ web_environment }}
+   APP_MESSAGE={{ web_message }}
+
+
+4. El fichero debe tener:
+
+   owner: root
+   group: root
+   mode: 0640
+
+
+5. No utilizar shell ni command.
+
+
+6. Añadir el tag:
+
+   config
+
+
+7. Comprobar idempotencia ejecutando el playbook dos veces.
+
