@@ -1784,3 +1784,73 @@ Esta vez debe volver a producirse:
 changed
 
 y ejecutarse el handler.
+
+
+
+============================================================
+EX12 - BLOCK, RESCUE Y ALWAYS
+============================================================
+
+OBJETIVO
+------------------------------------------------------------
+Practicar el manejo de errores en Ansible utilizando:
+
+- block
+- rescue
+- always
+
+
+REQUISITOS
+------------------------------------------------------------
+
+1. Crear un block de comprobaciones.
+
+2. Dentro del block:
+   - Comprobar mediante stat que existe:
+
+     /opt/bertoapp/config/bertoapp.conf
+
+   - Mostrar un mensaje indicando que todo está en orden
+     cuando corresponda.
+
+3. Añadir dentro del block una tarea que provoque
+   deliberadamente un fallo.
+
+4. Crear un rescue que muestre:
+
+   "Se ha producido un error durante la comprobacion de BertoApp"
+
+5. Crear un always que muestre:
+
+   "Finalizada la comprobación de BertoApp"
+
+6. Todo el bloque debe utilizar el tag:
+
+   error
+
+
+BONUS
+------------------------------------------------------------
+
+Eliminar la tarea que provoca deliberadamente el fallo.
+
+Volver a ejecutar el playbook y comprobar que:
+
+- rescue ya no se ejecuta.
+- always continúa ejecutándose.
+
+
+OBJETIVO CONCEPTUAL
+------------------------------------------------------------
+
+Aprender el flujo:
+
+BLOCK
+   ↓
+¿Hay error?
+   ├── NO → continúa
+   └── SÍ → RESCUE
+              ↓
+           ALWAYS
+              ↓
+             FIN

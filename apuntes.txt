@@ -3852,3 +3852,353 @@ Se ha comprobado:
     tags
     idempotencia
     ejecución condicional del handler según changed
+
+
+
+
+
+============================================================
+EX12 - BLOCK, RESCUE Y ALWAYS
+============================================================
+
+OBJETIVO
+------------------------------------------------------------
+Aprender a controlar errores en Ansible agrupando tareas
+con block, rescue y always.
+
+ESTRUCTURA
+------------------------------------------------------------
+
+- name: Comprobaciones
+  block:
+
+    - tarea 1
+    - tarea 2
+    - tarea 3
+
+  rescue:
+
+    - tareas que se ejecutan si falla el block
+
+  always:
+
+    - tareas que se ejecutan siempre
+
+  tags: error
+
+
+CONCEPTOS
+------------------------------------------------------------
+
+BLOCK
+------------------------------------------------------------
+Agrupa varias tareas relacionadas.
+
+Las tareas del block se ejecutan normalmente hasta que una
+de ellas produce un fallo.
+
+Ejemplo:
+
+- name: Comprobaciones
+  block:
+    - name: Comprobar fichero
+      ansible.builtin.stat:
+        path: /opt/bertoapp/config/bertoapp.conf
+      register: check_config
+
+
+RESCUE
+------------------------------------------------------------
+Se ejecuta cuando una tarea dentro del block falla.
+
+Sirve para realizar acciones de recuperación o mostrar
+información sobre el error.
+
+Ejemplo:
+
+  rescue:
+    - name: si tenemos errores
+      ansible.builtin.debug:
+        msg: "Se ha producido un error durante la comprobacion de BertoApp"
+
+
+ALWAYS
+------------------------------------------------------------
+Se ejecuta independientemente de que el block haya terminado
+correctamente o haya producido un error.
+
+Es útil para mensajes finales, limpieza o tareas que siempre
+deben ejecutarse.
+
+Ejemplo:
+
+  always:
+    - name: mensaje
+      ansible.builtin.debug:
+        msg: "Finalizada la comprobación de BertoApp"
+
+
+STAT
+------------------------------------------------------------
+ansible.builtin.stat permite obtener información sobre un
+fichero o directorio sin modificarlo.
+
+Ejemplo:
+
+- name: Comprobar fichero
+  ansible.builtin.stat:
+    path: /opt/bertoapp/config/bertoapp.conf
+  register: check_config
+
+
+El resultado se guarda en la variable registrada:
+
+check_config
+
+
+Para comprobar que existe:
+
+check_config.stat.exists
+
+
+IMPORTANTE
+------------------------------------------------------------
+No confundir:
+
+check_config.stat.exists
+    -> indica si el fichero existe.
+
+check_config.stat.islnk
+    -> indica si el fichero es un enlace simbólico.
+
+
+REGISTER
+------------------------------------------------------------
+register permite guardar el resultado de una tarea en una
+variable para utilizarlo posteriormente.
+
+Ejemplo:
+
+register: check_config
+
+Después:
+
+check_config.stat.exists
+
+
+CONDICIONES
+------------------------------------------------------------
+Podemos utilizar el resultado de stat en un when.
+
+Ejemplo:
+
+when: check_config.stat.exists is defined
+
+
+NOTA:
+"is defined" comprueba que el atributo exista en el resultado.
+
+Si queremos evaluar directamente el valor booleano de
+existencia:
+
+when: check_config.stat.exists
+
+
+FAIL
+------------------------------------------------------------
+ansible.builtin.fail permite provocar intencionadamente un
+fallo en una tarea.
+
+Ejemplo:
+
+- name: Provocar fallo
+  ansible.builtin.fail:
+    msg: "Fallo"
+
+
+Es especialmente útil para probar rescue y para implementar
+validaciones.
+
+
+EJEMPLO COMPLETO DEL EX12
+------------------------------------------------------------
+
+- name: Comprobaciones
+  block:
+
+    - name: Comprobaciones
+      ansible.builtin.stat:
+        path: /opt/bertoapp/config/bertoapp.conf
+      register: check_config
+
+    - name: Obtener stats
+      ansible.builtin.debug:
+        msg: "ESTA TODO EN ORDEN"
+      when: check_config.stat.exists is defined
+
+    - name: Provocar fallo
+      ansible.builtin.fail:
+        msg: "Fallo"
+
+  rescue:
+
+    - name: si tenemos errores
+      ansible.builtin.debug:
+        msg: "Se ha producido un error durante la comprobacion de BertoApp"
+
+  always:
+
+    - name: mensaje
+      ansible.builtin.debug:
+        msg: "Finalizada la comprobación de BErtoApp"
+
+  tags: error
+
+
+FLUJO DE EJECUCIÓN
+------------------------------------------------------------
+
+Si NO hay fallo:
+
+BLOCK
+  |
+  +--> tarea 1
+  |
+  +--> tarea 2
+  |
+  +--> tarea 3
+  |
+  +--> ALWAYS
+  |
+  FIN
+
+
+Si HAY fallo:
+
+BLOCK
+  |
+  +--> tarea 1
+  |
+  +--> tarea 2
+  |
+  +--> tarea que falla
+          |
+          v
+       RESCUE
+          |
+          v
+       ALWAYS
+          |
+          v
+         FIN
+
+
+RESULTADO DE NUESTRO EJERCICIO
+------------------------------------------------------------
+
+La ejecución mostró:
+
+rescued=1
+failed=0
+
+Esto significa que:
+
+- Se produjo un fallo.
+- rescue lo capturó.
+- always se ejecutó.
+- El playbook terminó sin dejar el host como failed.
+
+
+IDEMPOTENCIA
+------------------------------------------------------------
+
+block, rescue y always no hacen que una tarea sea
+automáticamente idempotente.
+
+La idempotencia depende de las tareas que pongamos dentro.
+
+Por ejemplo:
+
+stat
+    -> no modifica el sistema.
+
+debug
+    -> no modifica el sistema.
+
+fail
+    -> provoca un fallo intencionadamente.
+
+
+IDEA CLAVE PARA EL EXAMEN
+------------------------------------------------------------
+
+block  = agrupar tareas
+
+rescue = actuar cuando algo falla
+
+always = ejecutar siempre
+
+
+PATRÓN MENTAL:
+
+        BLOCK
+          |
+       ¿Falla?
+       /     \
+     NO       SÍ
+     |        |
+     |      RESCUE
+     |        |
+      \      /
+       ALWAYS
+          |
+         FIN
+
+
+COMANDOS DE PRUEBA
+------------------------------------------------------------
+
+Ejecutar solamente el tag del ejercicio:
+
+ansible-playbook -i hosts site.yml -t error
+
+Comprobar el resultado:
+
+failed=0
+rescued=1
+
+
+BONUS DEL EJERCICIO
+------------------------------------------------------------
+
+Eliminar la tarea:
+
+- name: Provocar fallo
+  ansible.builtin.fail:
+    msg: "Fallo"
+
+Volver a ejecutar.
+
+Resultado esperado:
+
+- rescue NO se ejecuta.
+- always SÍ se ejecuta.
+- El playbook termina correctamente.
+
+
+LO QUE ME TENGO QUE LLEVAR DE EX12
+------------------------------------------------------------
+
+[ ] Sé utilizar block.
+[ ] Sé utilizar rescue.
+[ ] Sé utilizar always.
+[ ] Sé que rescue solo entra cuando falla una tarea
+    del block.
+[ ] Sé que always se ejecuta tanto con éxito como con error.
+[ ] Sé utilizar stat.
+[ ] Sé utilizar register con stat.
+[ ] Sé consultar check_config.stat.exists.
+[ ] Sé utilizar ansible.builtin.fail para provocar un fallo.
+[ ] Entiendo rescued=1 y failed=0.
+[ ] Sé probar el comportamiento eliminando el fallo.
+============================================================

@@ -206,3 +206,28 @@
       mode: 0640
     notify: Version 
     tags: config 
+
+  - name: Comprobaciones
+    block:
+      - name: Comprobaciones
+        ansible.builtin.stat:
+          path: /opt/bertoapp/config/bertoapp.conf
+        register: check_config
+
+      - name: Obtener stats
+        ansible.builtin.debug:
+          msg: "ESTA TODO EN ORDEN"
+        when: check_config.stat.exists is defined
+
+    #  - name: Provocar fallo
+    #    ansible.builtin.fail:
+    #      msg: "Fallo"
+    rescue:
+      - name: si tenemos errores
+        ansible.builtin.debug:
+          msg: "Se ha producido un error durante la comprobacion de BertoApp"
+    always:
+      - name: mensaje
+        ansible.builtin.debug:
+          msg: "Finalizada la comprobación de BErtoApp"
+    tags: error
